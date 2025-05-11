@@ -1,0 +1,7 @@
+mcp[cli]>=1.0.0
+uvicorn>=0.32.1
+fastapi>=0.110.0
+python-dotenv>=1.0.0
+httpx>=0.27.0
+testzeus-hercules>=0.1.0
+playwright>=1.39.0 
