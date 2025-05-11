@@ -4,7 +4,7 @@ import json
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Tuple
 import asyncio
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
@@ -16,6 +16,7 @@ from src.utils.filesystem import FileSystemManager
 from src.utils.logger import logger
 from src.utils.config import Config
 from src.utils.path_manager import PathManager
+from src.utils.database import Database
 from src.tools.test_tools import TestTools
 from src.tools.test_utils import TestUtils
 
@@ -25,6 +26,9 @@ router = APIRouter()
 # Get configuration and directory paths
 dirs = Config.get_data_directories()
 exec_config = Config.get_test_execution_config()
+
+# Initialize database for tracking test executions
+db = Database()
 
 # Reference commonly used directories
 HERCULES_ROOT = dirs["hercules_root"]
@@ -41,9 +45,49 @@ TEST_DATA_DIR = dirs["test_data_dir"]
 # Test tracking
 test_executions = {}
 
+# Load existing executions from database on startup
+def load_executions_from_db():
+    """Load all executions from database into memory on server startup."""
+    try:
+        db_executions = db.get_all_executions()
+        for exec_data in db_executions:
+            exec_id = exec_data.get("execution_id")
+            if exec_id:
+                # Extract metadata if available
+                metadata = exec_data.get("metadata")
+                if isinstance(metadata, str):
+                    try:
+                        metadata = json.loads(metadata)
+                    except:
+                        metadata = {}
+                
+                # Create a basic record
+                test_executions[exec_id] = {
+                    "status": exec_data.get("status", "unknown"),
+                    "start_time": exec_data.get("start_time"),
+                    "end_time": exec_data.get("end_time"),
+                    "completed_tests": metadata.get("completed_tests", 0) if metadata else 0,
+                    "total_tests": metadata.get("total_tests", 0) if metadata else 0,
+                    "failed_tests": metadata.get("failed_tests", 0) if metadata else 0,
+                    "test_infos": metadata.get("test_infos", []) if metadata else []
+                }
+        logger.info(f"Loaded {len(db_executions)} executions from database")
+    except Exception as e:
+        logger.error(f"Error loading executions from database: {e}")
+
+# Load executions at startup
+load_executions_from_db()
+
 # Import the WebSocket connection manager from the dedicated module
 from src.api.websocket import manager as websocket_manager
 
+# Function to ensure database is properly flushed after operations
+def ensure_db_flushed():
+    """Ensure database changes are flushed to disk."""
+    try:
+        db.flush()
+    except Exception as e:
+        logger.error(f"Error flushing database: {e}")
 
 # Function to archive test results
 async def archive_test_results(execution_id: str, test_id: str, run_dir: Union[str, Path]) -> Path:
@@ -116,14 +160,47 @@ async def cleanup_exec():
 
 # Background task for running tests
 async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[str, Any]] = None):
-    """Execute a test as a background task.
+    """Run a single test as a background task.
     
     Args:
-        execution_id: Unique execution ID
-        test_id: Test ID
-        options: Test execution options including path_manager_id and directory paths
+        execution_id: ID of the overall execution
+        test_id: ID of the test to run
+        options: Additional test options
     """
     try:
+        # Get starting time
+        start_time = APIUtils.get_timestamp()
+        
+        # Record test start in database
+        metadata = {
+            'execution_id': execution_id,
+            'options': options if options else {}
+        }
+        
+        # Record as JSON string for database storage
+        metadata_json = json.dumps(metadata)
+        
+        # Create run in database with initial state
+        try:
+            # Extract browser info from options for database
+            browser_type = options.get('browser', 'chromium') if options else 'chromium'
+            headless = options.get('headless', False) if options else False
+            environment = options.get('environment', 'test') if options else 'test'
+            
+            # Create the run record
+            db_run_id = db.create_run(
+                test_id=test_id,
+                browser_type=browser_type,
+                headless=headless,
+                environment=environment,
+                metadata=metadata_json
+            )
+            logger.info(f"Created database record for test run: {db_run_id}")
+            ensure_db_flushed()
+        except Exception as db_error:
+            logger.error(f"Failed to record test start in database: {db_error}")
+            # Continue with execution even if database recording fails
+        
         # Initialize options if None
         if options is None:
             options = {}
@@ -171,7 +248,9 @@ async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[
         logger.info(f"  - Test data dir: {test_data_dir}")
         
         # Run the test
-        env_file = str(PROJECT_ROOT_DIR / ".env")
+        # Use configurable environment file path
+        from src.utils.paths import get_env_file_path
+        env_file = str(get_env_file_path())
         
         # Add execution metadata for logging purposes
         metadata = {
@@ -203,6 +282,8 @@ async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[
             # If result is not valid JSON, it's likely an error message
             status = "failed"
             result_data = {"error": result}
+            
+        logger.info(f"Test {test_id} for execution {execution_id} completed with status: {status}")
         
         # Generate a timestamp for this run
         run_timestamp = APIUtils.format_run_timestamp()
@@ -213,20 +294,196 @@ async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[
             
         # Update test execution status
         end_time = datetime.now().isoformat()
+        
+        # Always update local test_executions entry and database
         test_executions[execution_id] = {
+            "execution_id": execution_id,
             "test_id": test_id,
             "status": status,
             "start_time": start_time,
             "end_time": end_time,
-            "result": result_data,
-            "archived_path": str(archive_path) if archive_path else None,
-            "path_manager_id": path_manager_id or execution_id,
-            "test_dir": str(test_dir)
+            "result": result_data
         }
         
-        logger.info(f"Test {test_id} completed with status: {status}")
-        logger.info(f"Results available at: {test_dir}")
+        # Get test run matching this execution from database
+        try:
+            # Find any existing run_id for this test
+            existing_runs = db.get_runs_by_test_id(test_id)
+            
+            # Look for a run that matches this execution
+            matching_run = None
+            for run in existing_runs:
+                metadata = run.get('metadata')
+                if isinstance(metadata, dict) and metadata.get('execution_id') == execution_id:
+                    matching_run = run
+                    break
+            
+            if matching_run:
+                # Update the correct run record for this execution
+                db_run_id = matching_run['id']
+                # Update the status and end time
+                logger.info(f"Updating database record ID {db_run_id} for test {test_id} with status: {status}")
+                db.update_run_status(db_run_id, status, end_time)
+                
+                # Save detailed result metadata as an event
+                if result_data and isinstance(result_data, dict):
+                    # Convert any Path objects to strings
+                    json_safe_result = path_to_json(result_data)
+                    event_data = json.dumps(json_safe_result)
+                    db.create_event(db_run_id, None, "test_result", 
+                                  f"Test {test_id} {status}", event_data)
+                    
+                    # If there were steps recorded in the test, add them to the database
+                    if 'steps' in result_data and isinstance(result_data['steps'], list):
+                        for i, step_data in enumerate(result_data['steps']):
+                            try:
+                                step_desc = step_data.get('description', f'Step {i+1}')
+                                step_status = step_data.get('status', 'unknown')
+                                step_id = db.create_step(db_run_id, i+1, step_desc)
+                                db.update_step_status(step_id, step_status)
+                                
+                                # Add step details as an event - ensure Path objects are converted
+                                json_safe_step = path_to_json(step_data)
+                                db.create_event(db_run_id, step_id, "step_details",
+                                              f"Step {i+1}: {step_status}", json.dumps(json_safe_step))
+                            except Exception as step_error:
+                                logger.error(f"Error recording step {i+1} in database: {step_error}")
+                
+                logger.info(f"Updated database record for run ID {db_run_id} with status: {status}")
+            else:
+                # No matching record found for this execution, create a new one
+                logger.warning(f"No matching database record found for test {test_id} in execution {execution_id}. Creating new record.")
+                try:
+                    # Extract browser info from options for database
+                    browser_type = options.get('browser', 'chromium') if options else 'chromium'
+                    headless = options.get('headless', False) if options else False
+                    environment = options.get('environment', 'test') if options else 'test'
+                    
+                    # Create metadata for database
+                    metadata = {
+                        'execution_id': execution_id,
+                        'path_manager_id': path_manager_id,
+                        'test_dir': str(test_dir),
+                        'options': options if options else {}
+                    }
+                    
+                    # Create a run record with completed status
+                    db_run_id = db.create_run(
+                        test_id=test_id,
+                        browser_type=browser_type,
+                        headless=headless,
+                        environment=environment,
+                        metadata=json.dumps(metadata),
+                        status=status,
+                        start_time=start_time,
+                        end_time=end_time
+                    )
+                    logger.info(f"Created database record for completed test: {db_run_id}")
+                    
+                    # Also record the result as an event
+                    if result_data and isinstance(result_data, dict):
+                        # Convert any Path objects to strings
+                        json_safe_result = path_to_json(result_data)
+                        event_data = json.dumps(json_safe_result)
+                        db.create_event(db_run_id, None, "test_result", 
+                                      f"Test {test_id} {status}", event_data)
+                except Exception as create_error:
+                    logger.error(f"Error creating test record in database: {create_error}")
+        except Exception as db_error:
+            logger.error(f"Failed to record test completion in database: {db_error}")
+            # Continue execution even if database update fails
         
+        # Automatically process XML results when test is completed
+        try:
+            # Only process if test status indicates completion
+            if status in ["completed", "failed", "error"]:
+                logger.info(f"Test {test_id} {status}, automatically processing XML results")
+                processed_count, error_count = await process_xml_directly(execution_id, test_id)
+                
+                if processed_count > 0:
+                    logger.info(f"Automatically processed {processed_count} XML files for execution {execution_id}, test {test_id}")
+                else:
+                    logger.warning(f"No XML results found for test {test_id} in execution {execution_id}")
+        except Exception as xml_error:
+            logger.error(f"Error auto-processing XML results for test {test_id}: {xml_error}")
+            # Continue with execution flow even if XML processing fails
+        
+        # Update the parent execution status in memory and database
+        # Check if parent execution ID exists
+        parent_execution_id = path_manager_id or execution_id
+        if parent_execution_id in test_executions:
+            # Then check if this is a parent execution with test_infos
+            if 'test_infos' in test_executions[parent_execution_id]:
+                logger.info(f"Updating parent execution {parent_execution_id} status after test {test_id} completed with {status}")
+                
+                try:
+                    # Get all test infos from the parent execution
+                    parent_test_infos = test_executions[parent_execution_id].get('test_infos', [])
+                    total_tests = len(parent_test_infos)
+                    completed_tests = 0
+                    failed_tests = 0
+                    
+                    # Check status of all tests in this execution
+                    for test_info in parent_test_infos:
+                        test_info_id = test_info.get('test_id')
+                        if test_info_id in test_executions:
+                            test_status = test_executions[test_info_id].get('status', None)
+                            if test_status in ['completed', 'failed', 'error']:
+                                completed_tests += 1
+                                if test_status in ['failed', 'error']:
+                                    failed_tests += 1
+                    
+                    # Determine overall execution status
+                    if completed_tests == total_tests:
+                        # All tests are done
+                        parent_status = "failed" if failed_tests > 0 else "completed"
+                        parent_end_time = datetime.now().isoformat()
+                        
+                        # Update parent execution record in memory
+                        test_executions[parent_execution_id]['status'] = parent_status
+                        test_executions[parent_execution_id]['end_time'] = parent_end_time
+                        test_executions[parent_execution_id]['completed_tests'] = completed_tests
+                        test_executions[parent_execution_id]['failed_tests'] = failed_tests
+                        
+                        # Always update execution record in database
+                        db.update_execution_status(parent_execution_id, parent_status, parent_end_time)
+                        ensure_db_flushed()
+                        logger.info(f"All tests completed. Updated parent execution {parent_execution_id} status to {parent_status}")
+                    else:
+                        # Some tests still running
+                        progress = f"{completed_tests}/{total_tests}"
+                        logger.info(f"Execution {parent_execution_id} progress: {progress} tests completed")
+                        
+                        # Update progress in memory
+                        test_executions[parent_execution_id]['completed_tests'] = completed_tests
+                        test_executions[parent_execution_id]['failed_tests'] = failed_tests
+                        
+                        # Update progress in database
+                        try:
+                            # Update the execution metadata to include progress
+                            execution_record = db.get_execution(parent_execution_id)
+                            if execution_record:
+                                # Parse metadata
+                                metadata = execution_record.get('metadata')
+                                if isinstance(metadata, str):
+                                    metadata = json.loads(metadata)
+                                elif metadata is None:
+                                    metadata = {}
+                                    
+                                # Update metadata with test statistics
+                                metadata.update({
+                                    'progress': f"{completed_tests}/{total_tests}",
+                                    'completed_tests': completed_tests,
+                                    'failed_tests': failed_tests
+                                })
+                                
+                                # Ensure database record is updated
+                                db.update_execution_status(parent_execution_id, "running", None)
+                        except Exception as e:
+                            logger.error(f"Error updating execution progress: {e}")
+                except Exception as e:
+                    logger.error(f"Error updating parent execution status: {e}")
+            
         # Archive test results to permanent storage
         try:
             logger.info(f"Archiving test results for test {test_id} in execution {execution_id}")
@@ -235,7 +492,7 @@ async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[
             parent_execution_id = path_manager_id or execution_id
             logger.info(f"Parent execution ID for archiving: {parent_execution_id}")
             
-            # Check if this is the last test to complete in the execution
+            # Check if this is the last test to complete
             is_last_test = True
             if parent_execution_id in test_executions and 'test_infos' in test_executions[parent_execution_id]:
                 # Get total number of tests
@@ -257,12 +514,15 @@ async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[
             if is_last_test:
                 logger.info("This is the last test to complete. Proceeding with archiving...")
                 
-                # Get the root project directory (one level up from where the script runs)
+                # Get the root project directory
                 project_root = Path(PROJECT_ROOT_DIR)
                 logger.info(f"Project root directory: {project_root}")
                 
                 # Define the permanent storage directory
-                perm_storage_dir = project_root / "data" / "manager" / "perm" / "ExecutionResultHistory"
+                # Use the paths utility to get the proper base directory
+                from src.utils.paths import get_data_dir
+                data_dir = get_data_dir()
+                perm_storage_dir = data_dir / "manager" / "perm" / "ExecutionResultHistory"
                 FileSystemManager.ensure_dir(perm_storage_dir)
                 logger.info(f"Permanent storage directory: {perm_storage_dir}")
                 
@@ -314,15 +574,19 @@ async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[
                                 run_id = test_executions[parent_execution_id]['run_id']
                                 logger.info(f"Found run_id in execution record: {run_id}")
                             
-                            # Build the path
-                            exec_root = project_root / "data" / "manager" / "exec" / run_id
+                            # Build the path - use get_data_dir() to handle DATA_DIR correctly
+                            from src.utils.paths import get_data_dir
+                            data_dir = get_data_dir()
+                            exec_root = data_dir / "manager" / "exec" / run_id
                             logger.info(f"Using synthesized path from execution ID: {exec_root}")
                         except Exception as synth_error:
                             logger.error(f"Failed to synthesize path: {synth_error}")
                             
                             # As an absolute last resort, scan the exec directory for the matching run folder
                             try:
-                                exec_dir = project_root / "data" / "manager" / "exec"
+                                from src.utils.paths import get_data_dir
+                                data_dir = get_data_dir()
+                                exec_dir = data_dir / "manager" / "exec"
                                 if exec_dir.exists() and exec_dir.is_dir():
                                     # Look for a directory that contains the execution ID in its name
                                     for item in exec_dir.iterdir():
@@ -348,8 +612,28 @@ async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[
                         run_dir_name = exec_root.name  # Should be like 'run_YYYYMMDD_HHMMSS'
                         dest_path = perm_storage_dir / run_dir_name
                         
-                        # Perform the copy operation
-                        if not dest_path.exists():
+                        # Prepare for cleanup function - define it here so we can reuse it
+                        def cleanup_temp_directory():
+                            try:
+                                logger.info(f"Cleaning up temporary execution directory: {exec_root}")
+                                if exec_root.exists() and exec_root.is_dir():
+                                    shutil.rmtree(exec_root)
+                                    logger.info(f"Successfully removed temporary execution directory: {exec_root}")
+                                    # Update execution record to indicate cleanup
+                                    test_executions[parent_execution_id]['temp_dir_cleaned'] = True
+                                    return True
+                                else:
+                                    logger.warning(f"Temporary execution directory does not exist, nothing to clean up: {exec_root}")
+                                    return False
+                            except Exception as cleanup_error:
+                                logger.error(f"Error cleaning up temporary execution directory: {cleanup_error}")
+                                # Don't fail the archiving if cleanup fails
+                                return False
+                        
+                        # Perform the copy operation if needed
+                        archive_exists = dest_path.exists()
+                        
+                        if not archive_exists:
                             try:
                                 logger.info(f"Copying from {exec_root} to {dest_path}")
                                 shutil.copytree(exec_root, dest_path)
@@ -358,25 +642,60 @@ async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[
                                 # Update the execution record
                                 test_executions[parent_execution_id]['archived_path'] = str(dest_path)
                                 
-                                # After successful archiving, clean up the temporary execution directory
+                                # After successful archiving, ensure execution status is updated
                                 try:
-                                    logger.info(f"Cleaning up temporary execution directory: {exec_root}")
-                                    if exec_root.exists() and exec_root.is_dir():
-                                        shutil.rmtree(exec_root)
-                                        logger.info(f"Successfully removed temporary execution directory: {exec_root}")
-                                        # Update execution record to indicate cleanup
-                                        test_executions[parent_execution_id]['temp_dir_cleaned'] = True
-                                    else:
-                                        logger.warning(f"Temporary execution directory does not exist, nothing to clean up: {exec_root}")
-                                except Exception as cleanup_error:
-                                    logger.error(f"Error cleaning up temporary execution directory: {cleanup_error}")
-                                    # Don't fail the archiving if cleanup fails
+                                    parent_test_infos = test_executions[parent_execution_id].get('test_infos', [])
+                                    total_tests = len(parent_test_infos)
+                                    completed_tests = 0
+                                    failed_tests = 0
+                                    
+                                    # Check status of all tests in this execution
+                                    for test_info in parent_test_infos:
+                                        test_info_id = test_info.get('test_id')
+                                        if test_info_id in test_executions:
+                                            test_status = test_executions[test_info_id].get('status', None)
+                                            if test_status in ['completed', 'failed', 'error']:
+                                                completed_tests += 1
+                                                if test_status in ['failed', 'error']:
+                                                    failed_tests += 1
+                                    
+                                    # Force status update if all tests are done
+                                    if completed_tests == total_tests:
+                                        execution_status = "failed" if failed_tests > 0 else "completed"
+                                        end_time = datetime.now().isoformat()
+                                        
+                                        # Update execution status
+                                        test_executions[parent_execution_id]['status'] = execution_status
+                                        test_executions[parent_execution_id]['end_time'] = end_time
+                                        test_executions[parent_execution_id]['completed_tests'] = completed_tests
+                                        test_executions[parent_execution_id]['failed_tests'] = failed_tests
+                                        
+                                        # Update database
+                                        db.update_execution_status(parent_execution_id, execution_status, end_time)
+                                        ensure_db_flushed()
+                                        logger.info(f"Updated execution status to {execution_status} after archiving")
+                                except Exception as status_error:
+                                    logger.error(f"Error updating execution status after archiving: {status_error}")
+                                
+                                # After successful archiving, clean up the temporary execution directory
+                                cleanup_temp_directory()
                             except Exception as copy_error:
                                 logger.error(f"Failed to copy execution results: {copy_error}")
                                 import traceback
                                 logger.error(traceback.format_exc())
                         else:
                             logger.warning(f"Archive destination already exists: {dest_path}")
+                            # Even though we didn't create a new archive, we should still clean up
+                            # First verify the archive is valid by checking that it contains expected files
+                            if dest_path.exists() and dest_path.is_dir() and any(dest_path.iterdir()):
+                                logger.info(f"Archive exists and appears valid, proceeding with cleanup")
+                                # Mark that we found the archived path
+                                test_executions[parent_execution_id]['archived_path'] = str(dest_path)
+                                # Clean up the temporary directory
+                                cleanup_temp_directory()
+                            else:
+                                logger.error(f"Archive exists but appears invalid - won't clean up temp directory")
+                        
                     else:
                         logger.error(f"Source directory does not exist: {exec_root}")
                 else:
@@ -401,6 +720,77 @@ async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[
             "end_time": datetime.now().isoformat(),
             "error": str(e)
         }
+        
+        # Update database with error status
+        try:
+            # Try to find the test run in the database
+            run_records = db.get_runs_by_test_id(test_id)
+            matching_run = None
+            
+            for run in run_records:
+                try:
+                    metadata = run.get('metadata')
+                    if isinstance(metadata, str):
+                        metadata = json.loads(metadata)
+                    
+                    if metadata and metadata.get('execution_id') == execution_id:
+                        matching_run = run
+                        break
+                except:
+                    continue
+            
+            if matching_run:
+                db_run_id = matching_run['id']
+                end_time = datetime.now().isoformat()
+                db.update_run_status(db_run_id, "error", end_time)
+                
+                # Record error details as an event
+                db.create_event(db_run_id, None, "error", f"Test execution error: {str(e)}")
+                logger.info(f"Updated test run {db_run_id} status to error in database")
+        except Exception as db_error:
+            logger.error(f"Error updating test status in database: {db_error}")
+        
+        # Check if we need to update parent execution status
+        try:
+            parent_execution_id = path_manager_id or execution_id
+            if parent_execution_id in test_executions:
+                # Check if this is a parent execution with test_infos
+                if 'test_infos' in test_executions[parent_execution_id]:
+                    # Similar logic as above to recalculate parent execution status
+                    # but we know at least this test has failed
+                    parent_test_infos = test_executions[parent_execution_id].get('test_infos', [])
+                    total_tests = len(parent_test_infos)
+                    completed_tests = 0
+                    failed_tests = 1  # At least this test has failed
+                    
+                    for test_info in parent_test_infos:
+                        test_info_id = test_info.get('test_id')
+                        if test_info_id != test_id and test_info_id in test_executions:  # Skip the current test
+                            test_status = test_executions[test_info_id].get('status', None)
+                            if test_status in ['completed', 'failed', 'error']:
+                                completed_tests += 1
+                                if test_status in ['failed', 'error']:
+                                    failed_tests += 1
+                    
+                    completed_tests += 1  # Count this test as completed (with error)
+                    
+                    if completed_tests == total_tests:
+                        # All tests are done, and we know at least this one failed
+                        parent_status = "failed"
+                        parent_end_time = datetime.now().isoformat()
+                        
+                        # Update parent execution record
+                        test_executions[parent_execution_id]['status'] = parent_status
+                        test_executions[parent_execution_id]['end_time'] = parent_end_time
+                        test_executions[parent_execution_id]['completed_tests'] = completed_tests
+                        test_executions[parent_execution_id]['failed_tests'] = failed_tests
+                        
+                        # Update execution in database
+                        db.update_execution_status(parent_execution_id, parent_status, parent_end_time)
+                        ensure_db_flushed()
+                        logger.info(f"Updated parent execution {parent_execution_id} status to failed after test error")
+        except Exception as update_error:
+            logger.error(f"Error updating parent execution after test error: {update_error}")
 
 
 # API Endpoints
@@ -410,6 +800,215 @@ async def root():
     """Root endpoint."""
     return {"message": "TestZeus Hercules API Server"}
 
+@router.get("/executions/{execution_id}", response_model=dict)
+async def get_execution_status(execution_id: str):
+    """Get the status of a test execution."""
+    if execution_id not in test_executions:
+        raise HTTPException(status_code=404, detail=f"Execution ID {execution_id} not found")
+        
+    execution = test_executions[execution_id]
+    
+    # Get XML test results from database for this execution
+    xml_results = []
+    test_passed = None
+    test_summary = ""
+    try:
+        xml_results = db.get_xml_test_results(execution_id)
+        
+        # Determine overall test pass/fail status from XML results
+        if xml_results:
+            # Default to True - we'll set to False if any tests failed
+            all_tests_passed = True
+            test_count = len(xml_results)
+            passed_count = 0
+            
+            # Check each XML result
+            for result in xml_results:
+                if 'test_passed' in result and result['test_passed'] is not None:
+                    if result['test_passed']:
+                        passed_count += 1
+                    else:
+                        all_tests_passed = False
+            
+            # Set overall status
+            test_passed = all_tests_passed if test_count > 0 else None
+            
+            # Create summary
+            if test_count > 0:
+                if test_count == 1:
+                    # For a single test, include the final response if available
+                    single_result = xml_results[0]
+                    final_response = single_result.get('final_response', '')
+                    if final_response and len(final_response) > 0:
+                        test_summary = final_response
+                    else:
+                        test_summary = f"Test {'passed' if test_passed else 'failed'}"
+                else:
+                    # For multiple tests, show summary statistics
+                    test_summary = f"{passed_count} of {test_count} tests passed"
+                    
+            logger.info(f"Execution {execution_id} test status: {test_passed}, summary: {test_summary}")
+    except Exception as e:
+        logger.error(f"Error retrieving XML results for execution {execution_id}: {e}")
+    
+    return {
+        "execution_id": execution_id,
+        "status": execution.get("status", "unknown"),
+        "start_time": execution.get("start_time"),
+        "end_time": execution.get("end_time"),
+        "test_passed": test_passed,
+        "test_summary": test_summary,
+        "xml_results": xml_results,
+        "xml_results_count": len(xml_results)
+    }
+
+@router.get("/executions/{execution_id}/details", response_model=dict)
+async def get_execution_details(execution_id: str):
+    """Get detailed information about a test execution including database records.
+    
+    Args:
+        execution_id: ID of the execution
+        
+    Returns:
+        Detailed information including:
+        - Test execution status from in-memory state
+        - Database records of all tests associated with this execution
+    """
+    logger.debug(f"Getting execution details: {execution_id}")
+    
+    try:
+        # Check if execution exists in memory
+        if execution_id not in test_executions:
+            logger.warning(f"Execution {execution_id} not found in memory")
+            return {"error": f"Execution {execution_id} not found"}
+            
+        execution = test_executions[execution_id]
+        
+        # Get execution record from database
+        db_execution = db.get_execution(execution_id)
+        
+        # Create the response object with combined data from memory and database
+        response = {
+            "execution_id": execution_id,
+            "status": execution.get("status", "unknown"),
+            "start_time": execution.get("start_time", ""),
+            "end_time": execution.get("end_time", ""),
+            "test_count": len(execution.get("test_infos", [])) if "test_infos" in execution else 0,
+            "completed_tests": execution.get("completed_tests", 0),
+            "failed_tests": execution.get("failed_tests", 0),
+            "test_infos": execution.get("test_infos", []),
+            "database_execution": db_execution,
+            "database_records": []
+        }
+        
+        # Get all tests associated with this execution from the database
+        matching_runs = []
+        try:
+            # First attempt to get directly from execution_id
+            runs = db.get_runs_by_execution_id(execution_id)
+            if runs:
+                matching_runs.extend(runs)
+                
+            # Then try to get any runs that have this execution_id in their metadata
+            all_runs = db.get_all_runs()
+            for run in all_runs:
+                try:
+                    # Check if this run has an execution_id in metadata
+                    metadata = run.get("metadata", "{}")
+                    if isinstance(metadata, str):
+                        metadata = json.loads(metadata)
+                        
+                    if isinstance(metadata, dict) and metadata.get("execution_id") == execution_id:
+                        # Check if this run is already in matching_runs
+                        if not any(r.get("id") == run.get("id") for r in matching_runs):
+                            matching_runs.append(run)
+                except json.JSONDecodeError:
+                    continue  # Skip runs with invalid JSON metadata
+                except Exception as metadata_error:
+                    logger.error(f"Error processing run metadata: {metadata_error}")
+        except Exception as db_error:
+            logger.error(f"Error retrieving runs from database: {db_error}")
+            
+        # Process each matching run to include in the response
+        for run in matching_runs:
+            # Convert run to a JSON-serializable dictionary
+            test_record = dict(run)
+            
+            try:
+                # Get all steps for this run
+                if "id" in run:
+                    steps = db.get_steps_by_run_id(run["id"])
+                    test_record["steps"] = [dict(step) for step in steps]
+            except Exception as steps_error:
+                logger.error(f"Error retrieving steps for run {run.get('id')}: {steps_error}")
+                test_record["steps"] = []
+                
+            # Add the record to the response
+            response["database_records"].append(test_record)
+            
+        # Add database record count to the response
+        response["total_database_records"] = len(matching_runs)
+        
+        # Get XML test results
+        try:
+            xml_results = db.get_xml_test_results(execution_id)
+            response["xml_results"] = xml_results
+            response["total_xml_results"] = len(xml_results)
+        except Exception as xml_error:
+            logger.error(f"Error retrieving XML results: {xml_error}")
+            response["xml_results"] = []
+            response["total_xml_results"] = 0
+        
+        return response
+    except Exception as e:
+        logger.error(f"Error retrieving execution details from database: {e}")
+        # Return basic info even if database query fails
+        response = {
+            "execution_id": execution_id,
+            "database_error": str(e)
+        }
+        
+        if execution_id in test_executions:
+            for key, value in test_executions[execution_id].items():
+                if key != "path_manager":  # Skip path_manager as it's not JSON serializable
+                    response[key] = value
+                    
+        return response
+
+@router.get("/executions/{execution_id}/xml-results", response_model=dict)
+async def get_execution_xml_results(execution_id: str, test_id: Optional[str] = None):
+    """Get XML test results for an execution.
+    
+    Args:
+        execution_id: ID of the execution
+        test_id: Optional - filter by test ID
+        
+    Returns:
+        XML test results
+    """
+    logger.debug(f"Getting XML results for execution: {execution_id}, test: {test_id or 'all'}")
+    
+    try:
+        # Get XML test results from database
+        xml_results = db.get_xml_test_results(execution_id, test_id)
+        
+        # Format the response
+        response = {
+            "execution_id": execution_id,
+            "test_id": test_id,
+            "total_results": len(xml_results),
+            "results": xml_results
+        }
+        
+        return response
+    except Exception as e:
+        logger.error(f"Error retrieving XML results: {e}")
+        return {
+            "execution_id": execution_id,
+            "test_id": test_id,
+            "error": str(e),
+            "results": []
+        }
 
 @router.get("/tests/{execution_id}", response_model=TestResult)
 async def get_test_status(execution_id: str):
@@ -738,6 +1337,15 @@ async def run_tests_from_template(request: TestInfosRequest, background_tasks: B
             "run_id": path_manager.exec_root.name  # Store the run_id separately for easy reference
         }
         
+        # Create execution record in database
+        execution_metadata = {
+            "total_tests": len(request.test_infos),
+            "mock": request.mock,
+            "exec_path": exec_path_str
+        }
+        db.create_execution(execution_id, "pending", execution_metadata)
+        logger.info(f"Created database record for execution: {execution_id}")
+        
         # Log path information for debugging
         logger.info(f"Stored exec_path in test_executions[{execution_id}]: {test_executions[execution_id]['exec_path']}")
         logger.info(f"Execution directory structure: {path_manager.exec_root}")
@@ -842,6 +1450,12 @@ async def run_tests_from_template(request: TestInfosRequest, background_tasks: B
                     test_id,
                     options
                 )
+        
+        # Update execution status to running once all tests are scheduled
+        if not mock_mode:
+            test_executions[execution_id]["status"] = "running"
+            db.update_execution_status(execution_id, "running")
+            logger.info(f"Updated execution status to running: {execution_id}")
 
         # Handle mock mode: copy mock outputs and return immediately
         if mock_mode:
@@ -931,9 +1545,40 @@ async def run_tests_from_template(request: TestInfosRequest, background_tasks: B
                 logger.info(f"[MOCK TEST] Test execution completed with status: PASSED")
                 logger.info(f"[MOCK] Mock test execution completed for ID: {execution_id}")
 
-                # Finalize mock execution record
-                test_executions[execution_id]["status"] = "completed"
+                # Set execution status
+                status = "completed" if result.get("status") == "success" else "failed"
+                test_executions[execution_id]["status"] = status
                 test_executions[execution_id]["end_time"] = APIUtils.get_timestamp()
+                test_executions[execution_id]["result"] = result
+        
+                # Update database with test result
+                try:
+                    # Find the db_run_id created earlier
+                    end_time = test_executions[execution_id]["end_time"]
+                    
+                    # Query database for the run ID using the test_id
+                    run_records = db.get_runs_by_test_id(test_id)
+                    
+                    if run_records and len(run_records) > 0:
+                        # Update the most recent run record (in case multiple runs exist)
+                        db_run_id = run_records[-1]['id']
+                        db.update_run_status(db_run_id, status, end_time)
+                        
+                        # Save result metadata
+                        if result and isinstance(result, dict):
+                            # Convert any Path objects to strings
+                            json_safe_result = path_to_json(result)
+                            event_data = json.dumps(json_safe_result)
+                            db.create_event(db_run_id, None, "test_result", 
+                                          f"Test {test_id} {status}", event_data)
+                        
+                        logger.info(f"Updated database record for run ID {db_run_id} with status: {status}")
+                    else:
+                        logger.warning(f"Could not find database record for test {test_id} to update")
+                except Exception as db_error:
+                    logger.error(f"Failed to record test completion in database: {db_error}")
+                    # Continue execution even if database update fails
+
                 test_executions[execution_id]["result"] = {"status": "mocked", "output_dir": str(run_dir)}
                 run_dir = OUTPUT_DIR / f"run_{APIUtils.format_run_timestamp()}"
                 archive_path = await archive_test_results(execution_id, test_id, OPT_DIR)
@@ -959,4 +1604,555 @@ async def run_tests_from_template(request: TestInfosRequest, background_tasks: B
     except HTTPException:
         raise
     except Exception as e:
+        # Update execution status to failed in database
+        if 'execution_id' in locals():
+            test_executions[execution_id]["status"] = "failed"
+            test_executions[execution_id]["error"] = str(e)
+            try:
+                db.update_execution_status(execution_id, "failed")
+                logger.error(f"Marked execution as failed in database: {execution_id}")
+            except Exception as db_error:
+                logger.error(f"Error updating execution status in database: {db_error}")
+                
         raise HTTPException(status_code=500, detail=f"Error running tests from templates: {str(e)}")
+
+@router.get("/executions")
+async def get_all_executions(status: Optional[str] = None):
+    """Get all executions with optional filtering by status.
+    
+    Args:
+        status: Optional filter for execution status (running, pending, completed, failed)
+        
+    Returns:
+        List of execution records
+    """
+    results = []
+    current_time = datetime.now()
+    timeout_minutes = 10  # Mark as failed if started more than 10 minutes ago
+    running_tests = set()
+    
+    # First, check if any tests are actually running by checking running processes
+    # This helps us identify truly running tests even if their status isn't updated
+    try:
+        # Use ps command to get list of running testzeus-hercules processes
+        cmd = ["ps", "-ef"]
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+        output = stdout.decode()
+        
+        # Find execution IDs in the process list
+        for line in output.split('\n'):
+            if 'testzeus-hercules' in line:
+                # Extract execution ID from command line if possible
+                for key in test_executions.keys():
+                    if key in line:
+                        running_tests.add(key)
+                        logger.debug(f"Found running process for execution: {key}")
+    except Exception as e:
+        logger.error(f"Error checking for running processes: {e}")
+    
+    # Start by getting in-memory executions
+    for exec_id, exec_data in test_executions.items():
+        # Skip if it's not an execution record but a test record
+        if "test_infos" not in exec_data and "execution_id" not in exec_data:
+            continue
+            
+        current_status = exec_data.get("status", "unknown")
+        
+        # Override status if test is actually running
+        if exec_id in running_tests and current_status in ["pending", "running"]:
+            current_status = "running"
+            exec_data["status"] = "running"
+        
+        # If the status is "running" but we have an end_time, something is wrong
+        # Fix it by changing the status to "completed"
+        if current_status == "running" and exec_data.get("end_time") is not None:
+            current_status = "completed"
+            exec_data["status"] = "completed"
+        
+        # If the status is "pending" but it's been a while, check if actually completed
+        if current_status == "pending":
+            start_time_str = exec_data.get("start_time")
+            if start_time_str:
+                try:
+                    start_time = datetime.fromisoformat(start_time_str)
+                    elapsed_minutes = (current_time - start_time).total_seconds() / 60
+                    if elapsed_minutes > timeout_minutes:
+                        if exec_id not in running_tests:
+                            # Check if test is actually completed by looking for result files
+                            try:
+                                # Correct status based on test runs
+                                matching_runs = db.get_runs_by_execution_id(exec_id)
+                                if matching_runs:
+                                    total_tests = len(matching_runs)
+                                    completed_tests = sum(1 for run in matching_runs if run.get("status") in ["completed", "passed", "failed"])
+                                    if completed_tests == total_tests:
+                                        current_status = "completed"
+                                        exec_data["status"] = "completed"
+                                        exec_data["end_time"] = datetime.now().isoformat()
+                                        db.update_execution_status(exec_id, "completed", exec_data["end_time"])
+                                    elif completed_tests > 0:
+                                        # Some tests completed but not all
+                                        current_status = "running"
+                                        exec_data["status"] = "running"
+                                    else:
+                                        # No tests completed after timeout
+                                        current_status = "failed"
+                                        exec_data["status"] = "failed"
+                                        exec_data["end_time"] = datetime.now().isoformat()
+                                        db.update_execution_status(exec_id, "failed", exec_data["end_time"])
+                            except Exception as check_error:
+                                logger.error(f"Error checking if test is actually completed: {check_error}")
+                                # Be conservative, assume failed
+                                current_status = "failed"
+                                exec_data["status"] = "failed"
+                                exec_data["end_time"] = datetime.now().isoformat()
+                                db.update_execution_status(exec_id, "failed", exec_data["end_time"])
+                except (ValueError, TypeError) as e:
+                    logger.error(f"Error parsing start time for execution {exec_id}: {e}")
+        
+        # If status filter is provided, only include matching executions
+        if status is not None and current_status != status:
+            continue
+            
+        # Include basic execution info
+        execution = {
+            "execution_id": exec_id,
+            "status": current_status,
+            "start_time": exec_data.get("start_time"),
+            "end_time": exec_data.get("end_time", None),
+            "completed_tests": exec_data.get("completed_tests", 0),
+            "total_tests": len(exec_data.get("test_infos", [])),
+            "failed_tests": exec_data.get("failed_tests", 0),
+            "source": "memory"
+        }
+        
+        results.append(execution)
+    
+    # Then get database executions to fill in any missing ones
+    try:
+        # Add a method to get all executions from database
+        db_executions = db.get_all_executions() if hasattr(db, 'get_all_executions') else []
+        
+        for db_exec in db_executions:
+            # Extract fields from database record
+            exec_id = db_exec.get("execution_id")
+            db_status = db_exec.get("status")
+            start_time_str = db_exec.get("start_time")
+            
+            # Override status if test is actually running
+            if exec_id in running_tests and db_status in ["pending", "running"]:
+                db_status = "running"
+                # Update in database to ensure consistency
+                try:
+                    db.update_execution_status(exec_id, "running")
+                except Exception as e:
+                    logger.error(f"Error updating execution status to running: {e}")
+            
+            # Check if test has been running too long and should be marked as failed
+            if db_status in ["running", "pending"] and start_time_str:
+                try:
+                    start_time = datetime.fromisoformat(start_time_str)
+                    elapsed_minutes = (current_time - start_time).total_seconds() / 60
+                    
+                    if elapsed_minutes > timeout_minutes and exec_id not in running_tests:
+                        # Check if test is actually completed by looking for result files
+                        try:
+                            # Correct status based on test runs
+                            matching_runs = db.get_runs_by_execution_id(exec_id)
+                            if matching_runs:
+                                total_tests = len(matching_runs)
+                                completed_tests = sum(1 for run in matching_runs if run.get("status") in ["completed", "passed", "failed"])
+                                if completed_tests == total_tests:
+                                    db_status = "completed"
+                                    db.update_execution_status(exec_id, "completed")
+                                elif completed_tests > 0:
+                                    # Some tests completed but not all
+                                    db_status = "running"
+                                else:
+                                    # No tests completed after timeout
+                                    db_status = "failed"
+                                    db.update_execution_status(exec_id, "failed")
+                        except Exception as check_error:
+                            logger.error(f"Error checking if test is actually completed: {check_error}")
+                            # Mark as failed in database
+                            logger.warning(f"Execution {exec_id} has been {db_status} for more than {timeout_minutes} minutes. Marking as failed.")
+                            db.update_execution_status(exec_id, "failed")
+                            db_status = "failed"  # Update status for the result
+                except (ValueError, TypeError) as e:
+                    logger.error(f"Error parsing start time for execution {exec_id}: {e}")
+            
+            # Skip if filtered by status
+            if status is not None and db_status != status:
+                continue
+                
+            # Check if we already have this execution in memory
+            if any(r["execution_id"] == exec_id for r in results):
+                continue
+                
+            # Extract metadata if available
+            metadata = db_exec.get("metadata")
+            if isinstance(metadata, str):
+                try:
+                    metadata = json.loads(metadata)
+                except:
+                    metadata = {}
+            
+            # Add this database execution
+            execution = {
+                "execution_id": exec_id,
+                "status": db_status,
+                "start_time": start_time_str,
+                "end_time": db_exec.get("end_time"),
+                "completed_tests": metadata.get("completed_tests", 0) if metadata else 0,
+                "total_tests": metadata.get("total_tests", 0) if metadata else 0,
+                "failed_tests": metadata.get("failed_tests", 0) if metadata else 0,
+                "source": "database"
+            }
+            
+            results.append(execution)
+    except Exception as e:
+        logger.error(f"Error retrieving executions from database: {e}")
+    
+    # Sort results by start_time descending (newest first)
+    results.sort(key=lambda x: x.get("start_time", ""), reverse=True)
+    
+    return results
+
+@router.get("/update-execution-status/{execution_id}")
+async def update_execution_status(execution_id: str):
+    """Force update of an execution's status based on its test results."""
+    
+    # Check if execution exists
+    if execution_id not in test_executions:
+        raise HTTPException(status_code=404, detail=f"Execution ID {execution_id} not found")
+    
+    # Check database for associated test runs
+    matching_runs = db.get_runs_by_execution_id(execution_id)
+    
+    if not matching_runs:
+        return {"message": f"No test runs found for execution {execution_id}"}
+    
+    # Calculate status based on test runs
+    total_tests = len(matching_runs)
+    completed_tests = 0
+    failed_tests = 0
+    
+    for run in matching_runs:
+        status = run.get("status")
+        if status in ["completed", "failed", "error"]:
+            completed_tests += 1
+            if status in ["failed", "error"]:
+                failed_tests += 1
+    
+    # Determine execution status
+    if completed_tests == total_tests:
+        execution_status = "failed" if failed_tests > 0 else "completed"
+        end_time = datetime.now().isoformat()
+        
+        # Update memory
+        test_executions[execution_id]["status"] = execution_status
+        test_executions[execution_id]["end_time"] = end_time
+        test_executions[execution_id]["completed_tests"] = completed_tests
+        test_executions[execution_id]["failed_tests"] = failed_tests
+        
+        # Update database
+        db.update_execution_status(execution_id, execution_status, end_time)
+        
+        return {
+            "message": f"Execution status updated to {execution_status}",
+            "execution_id": execution_id,
+            "status": execution_status,
+            "completed_tests": completed_tests,
+            "total_tests": total_tests,
+            "failed_tests": failed_tests
+        }
+    else:
+        current_status = test_executions[execution_id].get("status", "running")
+        return {
+            "message": f"Execution still in progress: {completed_tests}/{total_tests} tests completed",
+            "execution_id": execution_id,
+            "status": current_status,
+            "completed_tests": completed_tests,
+            "total_tests": total_tests
+        }
+
+def path_to_json(obj):
+    """Convert Path objects to strings for JSON serialization.
+    
+    Args:
+        obj: Object to convert
+        
+    Returns:
+        JSON-serializable object
+    """
+    if isinstance(obj, Path):
+        return str(obj)
+    elif isinstance(obj, dict):
+        return {k: path_to_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [path_to_json(item) for item in obj]
+    else:
+        return obj
+
+async def process_xml_directly(execution_id: str, test_id: str) -> Tuple[int, int]:
+    """Process XML test results directly without using external process_xml_results module.
+    
+    Args:
+        execution_id: ID of the execution
+        test_id: ID of the test (optional)
+        
+    Returns:
+        Tuple of (processed_count, error_count)
+    """
+    from pathlib import Path
+    from src.utils.database import db
+    from src.utils.paths import get_data_dir
+    
+    # Track statistics
+    processed_count = 0
+    error_count = 0
+    
+    try:
+        # Get data directory
+        data_dir = get_data_dir()
+        
+        # Check both temporary and permanent storage locations
+        exec_dir = data_dir / "manager" / "exec" / f"run_{execution_id}"
+        perm_dir = data_dir / "manager" / "perm" / "ExecutionResultHistory" / f"run_{execution_id}"
+        
+        # Process directory if it exists
+        if perm_dir.exists():
+            logger.info(f"Found execution in permanent storage: {perm_dir}")
+            target_dir = perm_dir
+        elif exec_dir.exists():
+            logger.info(f"Found execution in temporary storage: {exec_dir}")
+            target_dir = exec_dir
+        else:
+            logger.warning(f"No execution directory found for ID: {execution_id}")
+            return 0, 0
+        
+        # If test_id specified, look for that specific test
+        if test_id:
+            test_output_dir = target_dir / "opt" / "tests" / test_id / "output"
+            if not test_output_dir.exists():
+                logger.warning(f"No output directory found for test: {test_id}")
+                return 0, 0
+                
+            # Look for XML files
+            test_dirs = [(test_id, test_output_dir)]
+        else:
+            # Look for all tests in the execution directory
+            tests_dir = target_dir / "opt" / "tests"
+            if not tests_dir.exists():
+                logger.warning(f"No tests directory found in execution: {execution_id}")
+                return 0, 0
+                
+            test_dirs = []
+            for test_dir in tests_dir.iterdir():
+                if test_dir.is_dir():
+                    output_dir = test_dir / "output"
+                    if output_dir.exists():
+                        test_dirs.append((test_dir.name, output_dir))
+        
+        # Process each test directory
+        for test_id, output_dir in test_dirs:
+            logger.info(f"Processing XML for test: {test_id}")
+            
+            # Find run directories in output
+            run_dirs = [d for d in output_dir.iterdir() if d.is_dir() and d.name.startswith("run_")]
+            if not run_dirs:
+                logger.info(f"No run directories found for test: {test_id}")
+                continue
+                
+            # Sort by modified time (newest first)
+            run_dirs.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+            
+            for run_dir in run_dirs:
+                # Look for XML files in this run directory
+                xml_files = list(run_dir.glob("*.xml"))
+                if not xml_files:
+                    logger.info(f"No XML files found in run directory: {run_dir}")
+                    continue
+                    
+                # Sort by modified time (newest first)
+                xml_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+                
+                # Process the newest XML file
+                xml_file = xml_files[0]
+                logger.info(f"Found XML result file: {xml_file}")
+                
+                # Store XML result in database
+                try:
+                    xml_id = db.store_xml_test_results(
+                        execution_id=execution_id,
+                        test_id=test_id,
+                        xml_file_path=str(xml_file)
+                    )
+                    
+                    if xml_id:
+                        logger.info(f"Stored XML result with ID: {xml_id}")
+                        processed_count += 1
+                    else:
+                        logger.error(f"Failed to store XML result: {xml_file}")
+                        error_count += 1
+                except Exception as e:
+                    logger.error(f"Error processing XML file {xml_file}: {e}")
+                    error_count += 1
+                
+                # Only process the newest XML file for each test
+                break
+        
+        return processed_count, error_count
+    except Exception as e:
+        logger.error(f"Error during direct XML processing: {e}")
+        return 0, 1
+
+@router.post("/executions/{execution_id}/test/{test_id}/status", response_model=dict)
+async def update_test_status(execution_id: str, test_id: str, status: str, message: Optional[str] = "", steps: Optional[List[Dict[str, Any]]] = None):
+    """Update the status of a specific test run.
+    
+    Args:
+        execution_id: ID of the test execution
+        test_id: ID of the test
+        status: New status (e.g., "completed", "failed", "aborted")
+        message: Optional message with additional information
+        steps: Optional list of test steps with status updates
+    
+    Returns:
+        Updated test status
+    """
+    logger.info(f"Updating test status for execution: {execution_id}, test: {test_id}, status: {status}")
+    
+    try:
+        # Always update local test_executions entry and database
+        db.update_run_status(test_id=test_id, status=status)
+        
+        # If the test has completed (successfully or with failure), look for XML results
+        if status in ["completed", "failed"]:
+            try:
+                # Try to find and process XML results directly
+                logger.info(f"Test {test_id} {status}, processing XML results")
+                processed_count, error_count = await process_xml_directly(execution_id, test_id)
+                
+                if processed_count > 0:
+                    logger.info(f"Automatically processed {processed_count} XML files for execution {execution_id}, test {test_id}")
+                else:
+                    logger.warning(f"No XML results found for test {test_id} in execution {execution_id}")
+                    
+            except Exception as e:
+                logger.error(f"Error processing XML results during status update: {e}")
+                # Continue with the status update even if XML processing fails
+        
+        # Update steps if provided
+        if steps:
+            for step in steps:
+                step_id = step.get("id")
+                step_status = step.get("status")
+                step_message = step.get("message", "")
+                
+                if step_id and step_status:
+                    db.update_step_status(
+                        test_id=test_id,
+                        step_id=step_id,
+                        status=step_status,
+                        message=step_message
+                    )
+        
+        # Update in-memory state if available
+        if execution_id in test_executions:
+            execution = test_executions[execution_id]
+            if test_id in execution.tests:
+                test = execution.tests[test_id]
+                test.status = status
+                test.message = message
+                
+                if steps:
+                    for step_update in steps:
+                        step_id = step_update.get("id")
+                        if step_id in test.steps:
+                            step = test.steps[step_id]
+                            step.status = step_update.get("status", step.status)
+                            step.message = step_update.get("message", step.message)
+        
+        return {
+            "execution_id": execution_id,
+            "test_id": test_id,
+            "status": status,
+            "message": message
+        }
+    except Exception as e:
+        logger.error(f"Error updating test status: {e}")
+        return {
+            "execution_id": execution_id,
+            "test_id": test_id,
+            "error": str(e)
+        }
+
+@router.post("/executions/{execution_id}/process-xml", response_model=dict)
+async def process_execution_xml(execution_id: str):
+    """Process XML test results for an execution and store them in the database.
+    
+    Args:
+        execution_id: ID of the execution
+        
+    Returns:
+        Processing results
+    """
+    logger.info(f"Processing XML results for execution: {execution_id}")
+    
+    try:
+        # Process XML results directly
+        processed_count, error_count = await process_xml_directly(execution_id, None)
+        
+        # Return results
+        return {
+            "execution_id": execution_id,
+            "processed_count": processed_count,
+            "error_count": error_count,
+            "message": f"Processed {processed_count} XML files with {error_count} errors"
+        }
+    except Exception as e:
+        logger.error(f"Error processing XML results: {e}")
+        return {
+            "execution_id": execution_id,
+            "error": str(e)
+        }
+
+@router.post("/process-xml", response_model=dict)
+async def process_all_xml_results(days: Optional[int] = 7):
+    """Process XML test results for all executions.
+    
+    Args:
+        days: Number of days to look back for results (default: 7)
+        
+    Returns:
+        Processing result
+    """
+    logger.info(f"Triggering XML processing for all executions in the last {days} days")
+    
+    try:
+        # Import the processing function
+        from src.tools.process_xml_results import process_xml_results
+        
+        # Process XML results
+        processed, errors = process_xml_results(days=days)
+        
+        # Return the result
+        return {
+            "days": days,
+            "processed_files": processed,
+            "errors": errors,
+            "status": "success" if errors == 0 else "partial_success" if processed > 0 else "failed"
+        }
+    except Exception as e:
+        logger.error(f"Error processing XML results: {e}")
+        return {
+            "days": days,
+            "status": "error",
+            "error": str(e)
+        }

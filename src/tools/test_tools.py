@@ -259,13 +259,13 @@ class TestTools:
                 logger.info(f"{log_prefix} Starting test execution.")
                 
             # Execute the command
-            # return_code, stdout, stderr = await APIUtils.run_command(
-            #     cmd,
-            #     timeout=options.get("timeout", 600),
-            #     env=custom_env,
-            #     log_prefix=log_prefix
-            # )
-            return_code=0
+            return_code, stdout, stderr = await APIUtils.run_command(
+                cmd,
+                timeout=options.get("timeout", 600),
+                env=custom_env,
+                log_prefix=log_prefix
+            )
+            # return_code=0
             
             # Log test completion
             if return_code == 0:
@@ -281,7 +281,83 @@ class TestTools:
 
             # Check if result file exists
             if not result_file.exists():
-                return "Test executed, but no result file was generated. Check logs for details."
+                logger.info(f"JSON result file not found: {result_file}")
+                
+                # Try to generate JSON result from HTML or XML result files
+                html_result = output_path / f"{test_id}_result.html"
+                xml_result = output_path / f"{test_id}_result.xml"
+                
+                # Create default result data
+                result_data = {
+                    "status": "completed",
+                    "passed_steps": 0,
+                    "failed_steps": 0,
+                    "total_steps": 0,
+                    "duration": 0
+                }
+                
+                # Check for error indicators
+                status = "completed"
+                if return_code != 0:
+                    status = "failed"
+                    result_data["status"] = status
+                
+                # If we have an HTML result, the test probably ran successfully
+                if html_result.exists():
+                    logger.info(f"Found HTML result file: {html_result}")
+                    try:
+                        # Try to extract basic information from the result HTML
+                        with open(html_result, 'r') as f:
+                            content = f.read()
+                            
+                        # Check for failure indicators in the HTML
+                        if "Passed</td>" in content:
+                            status = "passed"
+                        elif "Failed</td>" in content:
+                            status = "failed"
+                        
+                        # Get test steps if available
+                        steps = []
+                        step_count = content.count("<tr><th>Step</th>")
+                        if step_count > 0:
+                            result_data["total_steps"] = step_count
+                            
+                            # Count passed steps
+                            passed_steps = content.count("Passed</td>")
+                            result_data["passed_steps"] = passed_steps
+                            
+                            # Count failed steps
+                            failed_steps = content.count("Failed</td>")
+                            result_data["failed_steps"] = failed_steps
+                    except Exception as e:
+                        logger.error(f"Error extracting data from HTML result: {e}")
+                
+                # Extract more detailed information from XML if available
+                if xml_result.exists():
+                    logger.info(f"Found XML result file: {xml_result}")
+                    try:
+                        # Parse basic XML information
+                        import xml.etree.ElementTree as ET
+                        tree = ET.parse(xml_result)
+                        root = tree.getroot()
+                        
+                        # Extract test duration if available
+                        duration_elem = root.find(".//testcase")
+                        if duration_elem is not None and "time" in duration_elem.attrib:
+                            result_data["duration"] = float(duration_elem.attrib["time"])
+                    except Exception as e:
+                        logger.error(f"Error extracting data from XML result: {e}")
+                
+                # Save the generated result data
+                try:
+                    # Convert any Path objects to strings for JSON serialization
+                    json_safe_result_data = TestTools._path_to_json(result_data)
+                    with open(result_file, 'w') as f:
+                        json.dump(json_safe_result_data, f, indent=2)
+                    logger.info(f"Generated JSON result file: {result_file}")
+                except Exception as e:
+                    logger.error(f"Error creating JSON result file: {e}")
+                    return "Test executed, but failed to generate JSON result file. Check logs for details."
 
             # Read and return results summary
             with open(result_file, 'r') as f:
@@ -295,10 +371,12 @@ class TestTools:
                 "failed_steps": result_data.get("failed_steps", 0),
                 "total_steps": result_data.get("total_steps", 0),
                 "duration": result_data.get("duration", 0),
-                "result_file": result_file
+                "result_file": result_file  # This will be converted by _path_to_json
             }
 
-            return json.dumps(summary, indent=2)
+            # Convert any Path objects to strings for JSON serialization
+            json_safe_summary = TestTools._path_to_json(summary)
+            return json.dumps(json_safe_summary, indent=2)
         except Exception as e:
             logger.error(f"Error running test: {e}")
             return f"Error: Failed to run test: {str(e)}"
@@ -380,7 +458,9 @@ class TestTools:
 
                 analysis["screenshots"] = screenshots
 
-            return json.dumps(analysis, indent=2)
+            # Convert any Path objects to strings for JSON serialization
+            json_safe_analysis = TestTools._path_to_json(analysis)
+            return json.dumps(json_safe_analysis, indent=2)
         except Exception as e:
             logger.error(f"Error analyzing results: {e}")
             return f"Error: Failed to analyze results: {str(e)}"
@@ -532,7 +612,9 @@ class TestTools:
                 "steps": steps
             }
 
-            return json.dumps(steps_info, indent=2)
+            # Convert any Path objects to strings for JSON serialization
+            json_safe_steps = TestTools._path_to_json(steps_info)
+            return json.dumps(json_safe_steps, indent=2)
         except Exception as e:
             logger.error(f"Error listing test steps: {e}")
             return f"Error: Failed to list test steps: {str(e)}"
@@ -614,7 +696,28 @@ class TestTools:
                     "failed_steps": explanations
                 }
 
-            return json.dumps(explanation, indent=2)
+            # Convert any Path objects to strings for JSON serialization
+            json_safe_explanation = TestTools._path_to_json(explanation)
+            return json.dumps(json_safe_explanation, indent=2)
         except Exception as e:
             logger.error(f"Error explaining failure: {e}")
             return f"Error: Failed to explain failure: {str(e)}"
+
+    @staticmethod
+    def _path_to_json(obj):
+        """Convert Path objects to strings for JSON serialization.
+        
+        Args:
+            obj: Object to convert
+            
+        Returns:
+            JSON-serializable object
+        """
+        if isinstance(obj, Path):
+            return str(obj)
+        elif isinstance(obj, dict):
+            return {k: TestTools._path_to_json(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [TestTools._path_to_json(item) for item in obj]
+        else:
+            return obj

@@ -1,5 +1,12 @@
 #!/usr/bin/env python
+# Load environment variables from .env file first, before any other imports
 import os
+from dotenv import load_dotenv
+
+# Load .env file before any other imports
+load_dotenv()
+print(f"DATA_DIR from env: {os.environ.get('DATA_DIR', 'Not set')}")
+
 import sys
 import logging
 from pathlib import Path
@@ -133,11 +140,46 @@ app.include_router(router, prefix="")
 # Set up log processor to handle async logging
 setup_log_processor(app, ws_handler)
 
+# Function to periodically flush the database
+async def flush_database_periodically():
+    """Periodically flush the database to ensure all changes are written to disk."""
+    from src.utils.database import db
+    while True:
+        try:
+            db.flush()
+            logger.debug("Periodic database flush completed")
+        except Exception as e:
+            logger.error(f"Error during periodic database flush: {e}")
+        # Flush every 5 seconds
+        await asyncio.sleep(5)
+
+# Register the periodic flush task at startup
+@app.on_event("startup")
+async def start_db_flush_task():
+    """Start the background task to periodically flush the database."""
+    asyncio.create_task(flush_database_periodically())
+    logger.info("Database flush task started")
+
 # Custom OpenAPI schema
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
-        
+    
+    # Check if our custom YAML file exists
+    yaml_path = Path(__file__).parent / "openapi.yaml"
+    if yaml_path.exists():
+        try:
+            import yaml
+            with open(yaml_path, 'r') as f:
+                openapi_schema = yaml.safe_load(f)
+            logger.info(f"Loaded custom OpenAPI schema from {yaml_path}")
+            app.openapi_schema = openapi_schema
+            return app.openapi_schema
+        except Exception as e:
+            logger.error(f"Error loading custom OpenAPI schema: {e}")
+    
+    # Fallback to default schema generation if YAML isn't available
+    logger.info("Falling back to dynamically generated OpenAPI schema")
     openapi_schema = get_openapi(
         title=app.title,
         version=app.version,

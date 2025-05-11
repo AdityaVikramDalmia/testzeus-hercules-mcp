@@ -1,0 +1,713 @@
+openapi: 3.1.0
+info:
+  title: TestZeus Hercules API
+  description: API for running and managing TestZeus Hercules tests
+  version: 1.0.0
+  x-logo:
+    url: https://testzeus.io/logo.png
+servers:
+  - url: http://localhost:8003
+    description: Local development server
+paths:
+  /:
+    get:
+      summary: Root endpoint
+      description: Returns basic API information
+      operationId: root
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  name:
+                    type: string
+                  version:
+                    type: string
+
+  /executions:
+    get:
+      summary: Get all executions
+      description: Returns a list of all test executions with optional status filtering
+      operationId: getAllExecutions
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [running, pending, completed, failed]
+          description: Filter executions by status
+      responses:
+        '200':
+          description: List of executions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    execution_id:
+                      type: string
+                    status:
+                      type: string
+                      enum: [pending, running, completed, failed]
+                    start_time:
+                      type: string
+                      format: date-time
+                    end_time:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    total_tests:
+                      type: integer
+                      description: Total number of tests in this execution
+                    completed_tests:
+                      type: integer
+                      description: Number of completed tests
+                    failed_tests:
+                      type: integer
+                      description: Number of failed tests
+                    source:
+                      type: string
+                      enum: [memory, database]
+                      description: Source of the execution data
+
+  /executions/{execution_id}:
+    get:
+      summary: Get execution status
+      description: Returns the status of a test execution
+      operationId: getExecutionStatus
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique ID of the execution
+      responses:
+        '200':
+          description: Execution details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  execution_id:
+                    type: string
+                  status:
+                    type: string
+                  start_time:
+                    type: string
+                    format: date-time
+                  end_time:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  test_infos:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          description: Execution not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+
+  /executions/{execution_id}/details:
+    get:
+      summary: Get detailed execution information
+      description: Returns comprehensive details about a test execution including database records
+      operationId: getExecutionDetails
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique ID of the execution
+      responses:
+        '200':
+          description: Execution details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  execution_id:
+                    type: string
+                  memory_data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      start_time:
+                        type: string
+                        format: date-time
+                      end_time:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      result:
+                        type: object
+                        nullable: true
+                      archived_path:
+                        type: string
+                        nullable: true
+                      test_dir:
+                        type: string
+                        nullable: true
+                      test_infos:
+                        type: array
+                        items:
+                          type: object
+                  database_records:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        run_id:
+                          type: integer
+                        test_id:
+                          type: string
+                        status:
+                          type: string
+                        start_time:
+                          type: string
+                          format: date-time
+                        end_time:
+                          type: string
+                          format: date-time
+                          nullable: true
+                        browser_type:
+                          type: string
+                        headless:
+                          type: boolean
+                        environment:
+                          type: string
+                        metadata:
+                          type: object
+                        steps:
+                          type: array
+                          items:
+                            type: object
+                        events:
+                          type: array
+                          items:
+                            type: object
+                  total_database_records:
+                    type: integer
+                    nullable: true
+                  database_error:
+                    type: string
+                    nullable: true
+        '404':
+          description: Execution not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+
+  /update-execution-status/{execution_id}:
+    get:
+      summary: Force update execution status
+      description: Force updates the status of an execution based on its test results
+      operationId: updateExecutionStatus
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique ID of the execution to update
+      responses:
+        '200':
+          description: Execution status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  execution_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [pending, running, completed, failed]
+                  completed_tests:
+                    type: integer
+                  total_tests:
+                    type: integer
+                  failed_tests:
+                    type: integer
+        '404':
+          description: Execution not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+
+  /tests/{execution_id}:
+    get:
+      summary: Get test status
+      description: Returns the status of a specific test
+      operationId: getTestStatus
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique ID of the test execution
+      responses:
+        '200':
+          description: Test status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResult'
+        '404':
+          description: Test not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+    delete:
+      summary: Delete test
+      description: Delete a test execution from tracking
+      operationId: deleteTest
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique ID of the test execution to delete
+      responses:
+        '200':
+          description: Test deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Test not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+
+  /tests:
+    get:
+      summary: List tests
+      description: Returns a list of all test executions, optionally filtered by status
+      operationId: listTests
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter tests by status (e.g., running, completed, failed)
+      responses:
+        '200':
+          description: List of tests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    execution_id:
+                      type: string
+                    test_id:
+                      type: string
+                    status:
+                      type: string
+                    start_time:
+                      type: string
+                      format: date-time
+                    end_time:
+                      type: string
+                      format: date-time
+                      nullable: true
+
+  /available-tests:
+    get:
+      summary: List available tests
+      description: Returns a list of tests available for execution
+      operationId: listAvailableTests
+      responses:
+        '200':
+          description: List of available tests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  features:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                        name:
+                          type: string
+                        type:
+                          type: string
+                  scripts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                        name:
+                          type: string
+                        type:
+                          type: string
+
+  /library:
+    get:
+      summary: List library contents
+      description: Lists contents of the template library directory
+      operationId: listLibrary
+      parameters:
+        - name: path
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Subdirectory path within the library to list
+      responses:
+        '200':
+          description: List of library contents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  path:
+                    type: string
+                  directories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        path:
+                          type: string
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        path:
+                          type: string
+                        size:
+                          type: integer
+                        last_modified:
+                          type: string
+                          format: date-time
+
+  /search-library:
+    get:
+      summary: Search library
+      description: Search for feature files in the library that match a query string
+      operationId: searchLibrary
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                        name:
+                          type: string
+                        type:
+                          type: string
+                        matched_lines:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              line:
+                                type: integer
+                              content:
+                                type: string
+
+  /archives:
+    get:
+      summary: List archived test results
+      description: Returns a list of archived test results
+      operationId: listArchives
+      responses:
+        '200':
+          description: List of archived test results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    path:
+                      type: string
+                    size:
+                      type: integer
+                    last_modified:
+                      type: string
+                      format: date-time
+                    execution_id:
+                      type: string
+                    details:
+                      type: object
+                      nullable: true
+
+  /archives/{archive_name}:
+    delete:
+      summary: Delete archived test result
+      description: Delete an archived test result
+      operationId: deleteArchive
+      parameters:
+        - name: archive_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Name of the archive to delete
+      responses:
+        '200':
+          description: Archive deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Archive not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+
+  /tests/run-from-template:
+    post:
+      summary: Run tests from template
+      description: Run tests using templates or scripts from the library
+      operationId: runTestsFromTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestInfosRequest'
+      responses:
+        '200':
+          description: Tests started successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  execution_id:
+                    type: string
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  test_count:
+                    type: integer
+                  tests:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        order:
+                          type: integer
+                        test_id:
+                          type: string
+
+components:
+  schemas:
+    FeatureSpec:
+      type: object
+      properties:
+        templatePath:
+          type: string
+          nullable: true
+        featureScript:
+          type: string
+          nullable: true
+      description: Specification for a feature file to be used in testing
+
+    TestDataSpec:
+      type: object
+      properties:
+        templatePath:
+          type: string
+      required:
+        - templatePath
+      description: Specification for test data to be used in testing
+
+    TestInfo:
+      type: object
+      properties:
+        order:
+          type: integer
+        feature:
+          $ref: '#/components/schemas/FeatureSpec'
+        testData:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestDataSpec'
+          nullable: true
+        headless:
+          type: boolean
+          default: false
+        timeout:
+          type: integer
+          default: 300
+      required:
+        - order
+        - feature
+      description: Information about a test to be executed
+
+    TestInfosRequest:
+      type: object
+      properties:
+        test_infos:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestInfo'
+        mock:
+          type: boolean
+          default: false
+      required:
+        - test_infos
+      description: Request containing multiple test information objects
+
+    TestRequest:
+      type: object
+      properties:
+        test_id:
+          type: string
+        options:
+          type: object
+          nullable: true
+        mock:
+          type: boolean
+          default: false
+      required:
+        - test_id
+      description: Request for a single test execution
+
+    TestResponse:
+      type: object
+      properties:
+        execution_id:
+          type: string
+        test_id:
+          type: string
+        status:
+          type: string
+        start_time:
+          type: string
+      required:
+        - execution_id
+        - test_id
+        - status
+        - start_time
+      description: Response for a test execution request
+
+    TestResult:
+      type: object
+      properties:
+        execution_id:
+          type: string
+        test_id:
+          type: string
+        status:
+          type: string
+        start_time:
+          type: string
+        end_time:
+          type: string
+          nullable: true
+        result:
+          type: object
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        archived_path:
+          type: string
+          nullable: true
+      required:
+        - execution_id
+        - test_id
+        - status
+        - start_time
+      description: Result of a test execution
+
+tags:
+  - name: Test Management
+    description: Endpoints for managing test executions
+  - name: Library
+    description: Endpoints for managing the test template library
+  - name: Archives
+    description: Endpoints for managing archived test results

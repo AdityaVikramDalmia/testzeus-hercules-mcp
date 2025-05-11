@@ -37,6 +37,22 @@ class Logger:
     
     def critical(self, msg: str, *args: Any, **kwargs: Any) -> None:
         self.logger.critical(msg, *args, **kwargs)
+    
+    def setLevel(self, level: int) -> None:
+        """Set the logging level of this logger.
+        
+        Args:
+            level: The logging level to set (e.g., logging.INFO, logging.DEBUG)
+        """
+        self.logger.setLevel(level)
+    
+    def addHandler(self, handler: logging.Handler) -> None:
+        """Add the specified handler to this logger.
+        
+        Args:
+            handler: The handler to add
+        """
+        self.logger.addHandler(handler)
 
 # Create a global logger instance
 logger = Logger() 

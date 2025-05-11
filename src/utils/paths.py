@@ -34,13 +34,13 @@ def get_data_dir() -> Path:
 
 def get_root_dir() -> Path:
     """
-    Get the data directory path from environment variable or default location.
+    Get the root directory path of the project.
 
     Returns:
-        Path: The data directory path as a Path object
+        Path: The project root directory path as a Path object
 
     Environment Variables:
-        DATA_DIR: If set, this path will be used instead of the default location
+        DATA_DIR: If set, this function will derive the root directory from it
     """
     # Check if DATA_DIR environment variable is set
     env_data_dir = os.environ.get("DATA_DIR")
@@ -58,3 +58,24 @@ def get_root_dir() -> Path:
     # data_dir.mkdir(exist_ok=True)
 
     return data_dir
+
+
+def get_env_file_path() -> Path:
+    """
+    Get the path to the environment (.env) file based on environment variable or default location.
+    
+    Returns:
+        Path: The path to the .env file
+        
+    Environment Variables:
+        ENV_FILE_PATH: If set, this path will be used instead of the default location
+    """
+    # Check if ENV_FILE_PATH environment variable is set
+    env_file_path = os.environ.get("ENV_FILE_PATH")
+    
+    if env_file_path:
+        # Use the environment variable if it's set
+        return Path(env_file_path)
+    else:
+        # Default to project root /.env file
+        return get_root_dir() / ".env"
