@@ -10,6 +10,8 @@ import asyncio
 from fastapi import APIRouter, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
+# Change import from server to app
+from app import app
 from src.api.models import TestRequest, TestInfosRequest, TestResponse, TestResult
 from src.api.utils import APIUtils
 from src.utils.filesystem import FileSystemManager
@@ -795,7 +797,7 @@ async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[
 
 # API Endpoints
 
-@router.get("/")
+@router.get("/", operation_id="main_op")
 async def root():
     """Root endpoint."""
     return {"message": "TestZeus Hercules API Server"}
@@ -1297,13 +1299,32 @@ async def websocket_execution_logs(websocket: WebSocket, execution_id: str):
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket)
 
-@router.post("/tests/run-from-template")
+@app.post("/tests/run-from-template" , operation_id="runTestsFromTemplate")
 async def run_tests_from_template(request: TestInfosRequest, background_tasks: BackgroundTasks):
     """Run tests using templates or scripts from the library.
-    Supports both single test mode and bulk test mode.
-    
-    In bulk mode (EXECUTE_BULK=true), each test gets its own directory under opt/tests/.
-    In single mode (default), all tests use the standard opt/ directory structure.
+
+    This endpoint executes test cases by applying test data to predefined templates
+    or scripts stored in the system library. Each execution receives a unique ID
+    and dedicated directory structure for artifacts and results.
+
+    Parameters:
+        request: TestInfosRequest object containing:
+            - test_infos: List of test configurations to execute
+            - templates: Template references to use for test execution
+            - options: Execution options including environment variables
+        background_tasks: FastAPI background tasks handler for async processing
+
+    Execution Environment:
+        All tests share the standard opt/ directory structure for execution.
+        This ensures consistent file locations and simplifies resource management.
+
+    Execution Path:
+        The system creates a unique execution path based on the execution_id
+        where all test artifacts, logs, and results will be stored for retrieval
+        and analysis.
+
+    Returns:
+        ExecutionResponse containing the execution_id and status information.
     """
     try:
         # Generate execution record with a unique ID

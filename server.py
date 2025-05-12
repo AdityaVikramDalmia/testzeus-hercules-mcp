@@ -11,6 +11,7 @@ import sys
 import logging
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
+import json
 
 # Add project root to Python path if needed
 project_root = Path(__file__).parent.parent.parent
@@ -18,19 +19,24 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 import asyncio
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
 from fastapi.openapi.utils import get_openapi
+from starlette.responses import JSONResponse
+from fastapi_mcp import FastApiMCP
 
-# Now import the modules after adjusting sys.path
-from src.api.routes import router
-from src.api.websocket import manager as websocket_manager
-from src.api.init import initialize_api
+# Import the app instance from app.py
+from app import app
+
+# Initialize these components first
 from src.utils.logger import logger
 from src.utils.filesystem import FileSystemManager
 from src.utils.config import Config
 
+# Import library content handler
+from app_integration import register_library_content_endpoint
+
 # Initialize API components
+from src.api.init import initialize_api
 initialize_api()
 
 # Load configuration
@@ -79,6 +85,9 @@ class WebSocketLogHandler(logging.Handler):
         except Exception as e:
             print(f"Error in log handler: {e}")
 
+# Import the WebSocket connection manager 
+from src.api.websocket import manager as websocket_manager
+
 # Register a task to process logs from the queue
 def setup_log_processor(app, handler):
     @app.on_event("startup")
@@ -115,27 +124,39 @@ def setup_log_processor(app, handler):
 ws_handler = WebSocketLogHandler(websocket_manager)
 root_logger.addHandler(ws_handler)
 
-# Create FastAPI app
-app = FastAPI(
-    title="TestZeus Hercules API",
-    description="API for running TestZeus Hercules tests",
-    version="1.0.0",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json"
-)
+# Now import router from routes - after app is defined
+from src.api.routes import router
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Include API routes
+# Include API routes before MCP setup
 app.include_router(router, prefix="")
+
+# Register library content endpoints
+register_library_content_endpoint(app)
+
+# Now set up the MCP server after routes are included
+mcp = FastApiMCP(app,
+                 name="Hercules",
+
+                 description="""
+                 Description
+TestFlow Orchestrator is an MCP server that bridges test discovery and execution through a streamlined API workflow. It enables users to run existing automated tests without managing complex infrastructure details.
+Workflow Overview
+
+Discovery: When users request a test run, system calls getAllContent to identify the requested test from the library of feature scripts and test data files
+Execution: System then invokes runTestsFromTemplate to execute identified tests with appropriate templates and configurations
+Results: Each execution receives a unique ID with dedicated storage for artifacts and results
+
+The system handles all test resource management, configuration, and execution in a unified interface, requiring minimal user input to run complex test scenarios.
+                 """,
+                 describe_all_responses=True,
+                 describe_full_response_schema=True,
+                 # Explicitly include the run-from-template endpoint to ensure it's exposed
+                 include_operations=["runTestsFromTemplate","getAllContent"],
+                 )
+mcp.mount()
+
+# Force refresh the MCP server to make sure all routes are detected
+mcp.setup_server()
 
 # Set up log processor to handle async logging
 setup_log_processor(app, ws_handler)
@@ -228,6 +249,7 @@ if __name__ == "__main__":
     
     logger.info(f"Starting TestZeus Hercules API server on {host}:{port}")
     logger.info(f"API documentation available at http://localhost:{port}/api/docs")
+    logger.info(f"MCP endpoint available at http://localhost:{port}/mcp")
     
     # Run the server
     try:

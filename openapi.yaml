@@ -548,14 +548,83 @@ paths:
   /tests/run-from-template:
     post:
       summary: Run tests from template
-      description: Run tests using templates or scripts from the library
+      description: |
+        Run tests using templates or scripts from the library.
+        This endpoint allows running one or more tests based on templates stored in the system.
+        
+        Tests can be configured with the following parameters:
+        - Feature templates or custom feature scripts
+        - Test data from templates
+        - Headless mode (true/false)
+        - Timeout duration
+        
+        In mock mode, the execution is simulated without actually running the tests.
+        
+        The API returns an execution ID that can be used to track test progress.
+        
+        ## Template Path Configuration
+        
+        All template paths in the request are relative to the system's library directories:
+        
+        - Feature templates (`templatePath` in FeatureSpec): 
+          Relative to `data/manager/lib/features/`
+        
+        - Test data templates (`templatePath` in TestDataSpec): 
+          Relative to `data/manager/lib/test_data/`
+        
+        For example, to reference:
+        - Feature at: `data/manager/lib/features/basic/test.feature`
+          Use: `basic/test.feature`
+        
+        - Test data at: `data/manager/lib/test_data/test_data.txt`
+          Use: `test_data.txt`
+        
+        ## Example Request
+        ```
+        curl --location 'http://127.0.0.1:8001/tests/run-from-template' \
+        --header 'accept: application/json' \
+        --header 'Content-Type: application/json' \
+        --data '{
+            "test_infos": [
+                {
+                    "order": 0,
+                    "feature": {
+                        "templatePath": "basic/test.feature"
+                    },
+                    "testData": [
+                        {
+                            "templatePath": "test_data.txt"
+                        }
+                    ],
+                    "headless": false,
+                    "timeout": 300
+                }
+            ],
+            "mock": false
+        }'
+        ```
       operationId: runTestsFromTemplate
+      tags:
+        - Test Management
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/TestInfosRequest'
+            examples:
+              singleTest:
+                summary: Single test with template
+                value:
+                  test_infos:
+                    - order: 0
+                      feature:
+                        templatePath: "basic/test.feature"
+                      testData:
+                        - templatePath: "test_data.txt"
+                      headless: false
+                      timeout: 300
+                  mock: false
       responses:
         '200':
           description: Tests started successfully
@@ -566,21 +635,157 @@ paths:
                 properties:
                   execution_id:
                     type: string
+                    description: Unique identifier for tracking the test execution
                   status:
                     type: string
+                    description: Initial status of the execution (typically "pending" or "running")
                   message:
                     type: string
+                    description: Human-readable success message
                   test_count:
                     type: integer
+                    description: Number of tests included in this execution
                   tests:
                     type: array
+                    description: Details of individual tests in this execution
                     items:
                       type: object
                       properties:
                         order:
                           type: integer
+                          description: Execution order of this test
                         test_id:
                           type: string
+                          description: Unique identifier for this specific test
+
+  /library/content:
+    get:
+      summary: Get full content of library files
+      description: |
+        Returns the complete content of all feature scripts and test data files in the library.
+        This endpoint provides access to the raw content of files stored in:
+        - data/manager/lib/features (feature scripts)
+        - data/manager/lib/test_data (test data)
+        
+        You can use optional query parameters to filter the results by:
+        - Directory paths
+        - File patterns
+        - Content search
+        
+        When no filters are provided, all files from both directories are returned.
+        
+        This endpoint is particularly useful for:
+        - Exploring available test scripts and data
+        - Understanding file structure before making test requests
+        - Copying content to create custom files
+        - Debugging template issues
+      operationId: getLibraryContent
+      tags:
+        - Library
+      parameters:
+        - name: feature_path
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Optional filter for feature scripts by path.
+            Example: "basic" will return all files in data/manager/lib/features/basic
+        - name: test_data_path
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Optional filter for test data by path.
+            Example: "credentials" will return all files in data/manager/lib/test_data/credentials
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Optional content search filter.
+            Only returns files containing the specified text.
+      responses:
+        '200':
+          description: Successfully retrieved library content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  script_data_list:
+                    type: array
+                    description: List of feature script files with their content
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                          description: Relative path to the feature script from data/manager/lib/features
+                        content:
+                          type: string
+                          description: Full content of the feature script file
+                        size:
+                          type: integer
+                          description: Size of the file in bytes
+                        last_modified:
+                          type: string
+                          format: date-time
+                          description: Last modification timestamp
+                  test_data_list:
+                    type: array
+                    description: List of test data files with their content
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                          description: Relative path to the test data file from data/manager/lib/test_data
+                        content:
+                          type: string
+                          description: Full content of the test data file
+                        size:
+                          type: integer
+                          description: Size of the file in bytes
+                        last_modified:
+                          type: string
+                          format: date-time
+                          description: Last modification timestamp
+                  total_features:
+                    type: integer
+                    description: Total count of feature files found
+                  total_test_data:
+                    type: integer
+                    description: Total count of test data files found
+              examples:
+                fullContent:
+                  summary: Sample content from features and test data
+                  value:
+                    script_data_list:
+                      - path: "basic/test.feature"
+                        content: |
+                          Feature: Basic Navigation Functionality
+
+                            Scenario: User Performs Basic Navigation
+                              Given a user is on the test pages at "https://testpages.eviltester.com/styled/index.html"
+                              And the user clicks on the "About" button in the top nav
+                              Then the page should navigate to "https://testpages.eviltester.com/styled/page?app=testpages&t=About"
+                              And the first heading of the article should be "About TestPages"
+                        size: 426
+                        last_modified: "2025-05-15T14:23:18Z"
+                    test_data_list:
+                      - path: "test_data.txt"
+                        content: |
+                          url=https://testpages.eviltester.com/styled/index.html
+                          button_text=About
+                          expected_url=https://testpages.eviltester.com/styled/page?app=testpages&t=About
+                          expected_heading=About TestPages
+                        size: 188
+                        last_modified: "2025-05-15T14:25:42Z"
+                    total_features: 1
+                    total_test_data: 1
 
 components:
   schemas:
@@ -590,25 +795,154 @@ components:
         templatePath:
           type: string
           nullable: true
+          description: |
+            Path to a feature template file in the library, e.g. 'basic/test.feature'.
+            These templates contain predefined test scenarios written in Gherkin syntax.
+            
+            IMPORTANT: Paths are relative to the system's feature library directory:
+            `data/manager/lib/features/`
+            
+            For example, to use a feature located at:
+            `data/manager/lib/features/basic/test.feature`
+            
+            Specify the path as: `basic/test.feature`
+            
+            Nested paths within the features directory are also supported:
+            `checkout/payment/credit_card.feature`
         featureScript:
           type: string
           nullable: true
-      description: Specification for a feature file to be used in testing
+          description: |
+            Custom feature script content provided directly in the request.
+            Use this when you need a one-off test script that doesn't exist in the template library.
+            Must be valid Gherkin syntax following the format:
+            
+            ```gherkin
+            Feature: Feature name
+              Scenario: Scenario name
+                Given some precondition
+                When some action occurs
+                Then some result is expected
+            ```
+      description: |
+        Defines the test script to be executed, either by reference to a template or direct inclusion.
+        
+        ## Overview
+        
+        The FeatureSpec represents the actual test definition that will be executed. It provides
+        two mutually exclusive methods for specifying a test:
+        
+        1. Using a pre-defined template from the library (templatePath)
+        2. Providing a custom script directly in the request (featureScript)
+        
+        ## Template Paths
+        
+        When using templatePath, the path is relative to the system feature library located at:
+        `data/manager/lib/features/`
+        
+        Examples:
+        - `basic/login.feature` -> `data/manager/lib/features/basic/login.feature`
+        - `checkout/payment.feature` -> `data/manager/lib/features/checkout/payment.feature`
+        
+        ## Feature Scripts
+        
+        Feature scripts must be written in Gherkin syntax (Given/When/Then format). These scripts
+        define the actual steps that will be executed during the test.
+        
+        Example script:
+        ```gherkin
+        Feature: User Login
+          Scenario: Successful login with valid credentials
+            Given I am on the login page
+            When I enter valid username and password
+            And I click the login button
+            Then I should be logged in successfully
+        ```
+        
+        ## Behavior
+        
+        - You must provide exactly ONE of templatePath OR featureScript
+        - If both are provided, the API will return an error
+        - If neither is provided, the API will return an error
+        - Templates are preferred for reusable tests
+        - FeatureScript is preferred for one-time or dynamic tests
 
     TestDataSpec:
       type: object
       properties:
         templatePath:
           type: string
+          description: |
+            Path to a test data template file in the library, e.g. 'test_data.txt'.
+            
+            IMPORTANT: Paths are relative to the system's test data library directory:
+            `data/manager/lib/test_data/`
+            
+            For example, to use a test data file located at:
+            `data/manager/lib/test_data/test_data.txt`
+            
+            Specify the path as: `test_data.txt`
+            
+            Nested paths within the test_data directory are also supported:
+            `credentials/production_users.txt`
+            
+            Test data files contain variables and values in a structured format that
+            will be substituted into placeholders in the feature script.
       required:
         - templatePath
-      description: Specification for test data to be used in testing
+      description: |
+        Specifies test data to be used when executing a feature script.
+        
+        ## Overview
+        
+        TestDataSpec provides a way to parameterize test scripts, enabling data-driven testing.
+        Each TestDataSpec references a data file containing key-value pairs that will be injected
+        into the feature script at runtime, replacing placeholders with actual test values.
+        
+        ## Template Paths
+        
+        Test data template paths are relative to the system test data library located at:
+        `data/manager/lib/test_data/`
+        
+        Examples:
+        - `login/credentials.txt` -> `data/manager/lib/test_data/login/credentials.txt`
+        - `products/catalog.txt` -> `data/manager/lib/test_data/products/catalog.txt`
+        
+        ## File Format
+        
+        Test data files contain key-value pairs in the format:
+        ```
+        key1=value1
+        key2=value2
+        key3=value3
+        ```
+        
+        ## Variable Substitution
+        
+        In the feature script, variables are referenced using the ${variable} syntax:
+        
+        ```gherkin
+        Given I navigate to "${baseUrl}"
+        When I login with username "${username}" and password "${password}"
+        Then I should see "${welcomeMessage}"
+        ```
+        
+        ## Multiple Data Files
+        
+        You can provide multiple TestDataSpec entries for a single test, which allows:
+        - Modular organization of test data
+        - Combining shared data (e.g., environment variables) with test-specific data
+        - Overriding values (later files will override values from earlier files)
 
     TestInfo:
       type: object
       properties:
         order:
           type: integer
+          description: |
+            The execution sequence number for this test within the batch (zero-based index).
+            Tests are executed sequentially based on this value, from lowest to highest.
+            For parallel execution, tests with the same order value may run simultaneously.
         feature:
           $ref: '#/components/schemas/FeatureSpec'
         testData:
@@ -616,16 +950,91 @@ components:
           items:
             $ref: '#/components/schemas/TestDataSpec'
           nullable: true
+          description: |
+            Optional array of test data templates to use with this test.
+            Each template provides variable values that will be injected into the feature script.
+            Multiple test data templates can be combined for complex test scenarios.
         headless:
           type: boolean
           default: false
+          description: |
+            Controls browser visibility during test execution:
+            - false: Browser window is visible (useful for debugging)
+            - true: Browser runs in headless mode without visible UI (better for CI/CD pipelines)
         timeout:
           type: integer
           default: 300
+          description: |
+            Maximum time in seconds to allow the test to run before forcibly terminating it.
+            Prevents tests from hanging indefinitely. Default is 300 seconds (5 minutes).
+        browser:
+          type: string
+          enum: ["chromium", "firefox", "webkit"]
+          default: "chromium"
+          description: |
+            Browser engine to use for test execution.
+            Supports Chromium (Chrome/Edge), Firefox, or WebKit (Safari).
       required:
         - order
         - feature
-      description: Information about a test to be executed
+      description: |
+        Comprehensive configuration for a single test execution.
+        
+        ## Overview
+        
+        The TestInfo object is the fundamental unit of test configuration. It defines all aspects
+        of a single test execution, including what to test, the test inputs, and how the test
+        should be run.
+        
+        ## Core Components
+        
+        Each TestInfo combines:
+        
+        1. **Feature Definition** - What to test
+           - Either a reference to a template or a custom script
+           - Defines the test steps using Gherkin syntax
+        
+        2. **Test Data** - Input parameters
+           - Optional array of data templates
+           - Provides variables that will be substituted into the feature script
+           - Enables data-driven testing
+        
+        3. **Execution Configuration** - How to run the test
+           - Order - Sequence number for execution
+           - Headless - Whether to show browser UI
+           - Timeout - Maximum execution time
+           - Browser - Which browser engine to use
+        
+        ## Test Data Substitution
+        
+        When test data is provided, the system:
+        1. Loads the feature script (from template or direct input)
+        2. Loads each test data file in the specified order
+        3. Substitutes variables in the feature script with values from the test data
+        4. Executes the resulting script
+        
+        ## Browser Selection
+        
+        The `browser` property controls which browser engine will execute the test:
+        - chromium - Chrome/Edge (default)
+        - firefox - Mozilla Firefox
+        - webkit - Safari
+        
+        ## Execution Order
+        
+        Tests are executed according to their `order` value (lowest to highest).
+        Tests with the same order value may be executed in parallel, depending on
+        the system configuration.
+        
+        ## Use Cases
+        
+        - Functional testing of web applications
+        - Regression testing of critical workflows
+        - Data-driven testing across multiple inputs
+        - Cross-browser compatibility testing
+        - Performance benchmarking with timeouts
+        - Visual testing (non-headless mode)
+        - CI/CD pipeline integration (headless mode)
 
     TestInfosRequest:
       type: object
@@ -634,12 +1043,110 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TestInfo'
+          description: |
+            Array of test configurations to be executed as a single batch.
+            Each entry defines a complete test with its feature, test data, and execution settings.
+            Tests are executed according to their "order" property value, from lowest to highest.
         mock:
           type: boolean
           default: false
+          description: |
+            Controls whether tests are actually executed or just simulated:
+            
+            - false (default): Tests are fully executed using real browsers
+            - true: Tests are validated but not executed; useful for testing API integration
+              or verifying test configurations without running the actual tests
+        environment:
+          type: string
+          enum: ["production", "staging", "development", "test"]
+          default: "test"
+          description: |
+            Target environment for test execution. 
+            This may affect environment-specific configuration like base URLs, 
+            credentials, or test data selection.
       required:
         - test_infos
-      description: Request containing multiple test information objects
+      description: |
+        Main request object for executing a batch of tests based on templates or custom scripts.
+        
+        ## Overview
+        
+        The TestInfosRequest is the top-level request object for the /tests/run-from-template API.
+        It encapsulates a batch of tests that will be executed as a single unit, along with
+        global settings that apply to the entire batch.
+        
+        ## Core Components
+        
+        1. **Test Array** - The collection of tests to execute
+           - Array of TestInfo objects
+           - Each defines a complete test configuration
+           - Tests run in sequence based on their order property
+        
+        2. **Global Settings** - Settings for the entire batch
+           - Mock mode - Whether to simulate execution
+           - Environment - Target environment for the tests
+        
+        ## Execution Flow
+        
+        When this request is processed:
+        
+        1. The system validates all test configurations
+        2. Creates an execution record and assigns a unique execution_id
+        3. Initializes test tracking for each test in the batch
+        4. Executes tests in sequence based on their order values
+        5. Returns the execution_id which can be used to monitor progress
+        
+        ## Mock Mode
+        
+        When mock=true, the system:
+        - Validates all test configurations
+        - Creates execution records in the database
+        - Simulates test execution with fake results
+        - Does NOT start any actual browser instances
+        
+        This is useful for:
+        - Testing API integration without running actual tests
+        - Validating test configurations before execution
+        - Performance testing the execution framework itself
+        
+        ## Environment Selection
+        
+        The environment property specifies which environment the tests should target:
+        - production - Live production environment
+        - staging - Pre-production staging environment
+        - development - Development environment
+        - test - Isolated test environment (default)
+        
+        ## Response
+        
+        The API returns an execution_id that can be used to:
+        - Track execution progress
+        - Retrieve test results
+        - Access execution details and logs
+        
+        ## Execution Monitoring
+        
+        After submitting this request, you can:
+        1. Monitor progress with GET /executions/{execution_id}
+        2. View detailed results with GET /executions/{execution_id}/details
+        3. Force status updates with GET /update-execution-status/{execution_id}
+        
+        ## Use Cases
+        
+        - Execute a single test with specific settings
+        - Run a batch of related tests in a defined sequence
+        - Perform data-driven testing with different test data
+        - Run a comprehensive test suite across environments
+        - Validate test configurations without execution
+        - Integration with CI/CD pipelines
+        
+        ## Example Workflow
+        
+        1. Create a request with multiple test configurations
+        2. Submit to /tests/run-from-template
+        3. Store the returned execution_id
+        4. Poll /executions/{execution_id} to monitor progress
+        5. Retrieve detailed results when complete
 
     TestRequest:
       type: object
