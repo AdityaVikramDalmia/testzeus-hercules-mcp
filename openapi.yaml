@@ -123,6 +123,8 @@ paths:
                   detail:
                     type: string
 
+
+
   /executions/{execution_id}/details:
     get:
       summary: Get detailed execution information

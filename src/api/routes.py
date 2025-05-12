@@ -447,7 +447,7 @@ async def run_test_task(execution_id: str, test_id: str, options: Optional[Dict[
                         test_executions[parent_execution_id]['completed_tests'] = completed_tests
                         test_executions[parent_execution_id]['failed_tests'] = failed_tests
                         
-                        # Always update execution record in database
+                        # Update execution record in database
                         db.update_execution_status(parent_execution_id, parent_status, parent_end_time)
                         ensure_db_flushed()
                         logger.info(f"All tests completed. Updated parent execution {parent_execution_id} status to {parent_status}")
@@ -802,7 +802,7 @@ async def root():
     """Root endpoint."""
     return {"message": "TestZeus Hercules API Server"}
 
-@router.get("/executions/{execution_id}", response_model=dict)
+@router.get("/executions/{execution_id}", response_model=dict, operation_id="getExecutionDetails")
 async def get_execution_status(execution_id: str):
     """Get the status of a test execution."""
     if execution_id not in test_executions:
@@ -1190,7 +1190,7 @@ async def delete_archive(archive_name: str):
 #         # Log the cleanup operation
 #         logger.info(f"Completely wiping opt directory: {OPT_DIR}")
 #
-#         # Check if the directory exists before trying to remove it
+#         # Check if directory exists before trying to remove it
 #         if OPT_DIR.exists():
 #             # Remove the entire directory and its contents
 #             shutil.rmtree(OPT_DIR)
@@ -1299,7 +1299,15 @@ async def websocket_execution_logs(websocket: WebSocket, execution_id: str):
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket)
 
-@app.post("/tests/run-from-template" , operation_id="runTestsFromTemplate")
+@app.get("/test/checking", operation_id="getTestChecking")
+async def get_test_checking():
+    """
+    Gets a ping check on the server
+    Returns a ping check on the server
+    """
+    return {"message": "pong"}
+
+@app.post("/tests/run-from-template")
 async def run_tests_from_template(request: TestInfosRequest, background_tasks: BackgroundTasks):
     """Run tests using templates or scripts from the library.
 
@@ -1637,7 +1645,7 @@ async def run_tests_from_template(request: TestInfosRequest, background_tasks: B
                 
         raise HTTPException(status_code=500, detail=f"Error running tests from templates: {str(e)}")
 
-@router.get("/executions")
+@app.get("/executions" ,operation_id = "getExecutionList")
 async def get_all_executions(status: Optional[str] = None):
     """Get all executions with optional filtering by status.
     

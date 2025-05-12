@@ -148,10 +148,10 @@ Results: Each execution receives a unique ID with dedicated storage for artifact
 
 The system handles all test resource management, configuration, and execution in a unified interface, requiring minimal user input to run complex test scenarios.
                  """,
-                 describe_all_responses=True,
-                 describe_full_response_schema=True,
+                 # describe_all_responses=True,
+                 # describe_full_response_schema=True,
                  # Explicitly include the run-from-template endpoint to ensure it's exposed
-                 include_operations=["runTestsFromTemplate","getAllContent"],
+                 include_operations=["getTestChecking","getExecutionList","getExecutionDetails"],
                  )
 mcp.mount()
 
@@ -230,7 +230,7 @@ if __name__ == "__main__":
     reload = config["reload"]
     
     # Try to find an available port if the default one is in use
-    max_port_attempts = 10
+    max_port_attempts = 0
     original_port = port
     
     for attempt in range(max_port_attempts):
