@@ -547,89 +547,172 @@ paths:
                   detail:
                     type: string
 
-  /tests/run-from-template:
+
+  /tests/run-from-template-new:
     post:
       summary: Run tests from template
       description: |
-        Run tests using templates or scripts from the library.
-        This endpoint allows running one or more tests based on templates stored in the system.
+        Execute one or more tests using templates or scripts from the library.
         
-        Tests can be configured with the following parameters:
-        - Feature templates or custom feature scripts
-        - Test data from templates
-        - Headless mode (true/false)
-        - Timeout duration
+        This endpoint allows running tests with the following capabilities:
+        - Execute tests using feature templates from the library
+        - Provide custom feature scripts directly
+        - Use test data from template files
+        - Configure browser settings (headless mode, browser type)
+        - Set execution timeouts
+        - Run in mock mode for testing
         
-        In mock mode, the execution is simulated without actually running the tests.
-        
-        The API returns an execution ID that can be used to track test progress.
+        The API creates a unique execution ID for tracking test progress and returns
+        immediately while tests run in the background.
         
         ## Template Path Configuration
         
-        All template paths in the request are relative to the system's library directories:
+        All template paths are relative to the system's library directories:
+        - Feature templates: Relative to `data/manager/lib/features/`
+        - Test data templates: Relative to `data/manager/lib/test_data/`
         
-        - Feature templates (`templatePath` in FeatureSpec): 
-          Relative to `data/manager/lib/features/`
-        
-        - Test data templates (`templatePath` in TestDataSpec): 
-          Relative to `data/manager/lib/test_data/`
-        
-        For example, to reference:
-        - Feature at: `data/manager/lib/features/basic/test.feature`
-          Use: `basic/test.feature`
-        
-        - Test data at: `data/manager/lib/test_data/test_data.txt`
-          Use: `test_data.txt`
-        
-        ## Example Request
-        ```
-        curl --location 'http://127.0.0.1:8001/tests/run-from-template' \
-        --header 'accept: application/json' \
-        --header 'Content-Type: application/json' \
-        --data '{
-            "test_infos": [
+        ## Example Usage
+        ```json
+        {
+          "test_infos": [
+            {
+              "order": 0,
+              "feature": {
+                "templatePath": "basic/test.feature"
+              },
+              "testData": [
                 {
-                    "order": 0,
-                    "feature": {
-                        "templatePath": "basic/test.feature"
-                    },
-                    "testData": [
-                        {
-                            "templatePath": "test_data.txt"
-                        }
-                    ],
-                    "headless": false,
-                    "timeout": 300
+                  "templatePath": "test_data.txt"
                 }
-            ],
-            "mock": false
-        }'
+              ],
+              "headless": false,
+              "timeout": 300,
+              "browser": "chromium"
+            }
+          ],
+          "mock": false,
+          "environment": "test"
+        }
         ```
+
       operationId: runTestsFromTemplate
-      tags:
-        - Test Management
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TestInfosRequest'
-            examples:
-              singleTest:
-                summary: Single test with template
-                value:
-                  test_infos:
-                    - order: 0
+              type: object
+              required:
+                - test_infos
+              properties:
+                test_infos:
+                  type: array
+                  description: Array of test configurations to execute
+                  items:
+                    type: object
+                    required:
+                      - order
+                      - feature
+                    properties:
+                      order:
+                        type: integer
+                        description: |
+                          Execution sequence number for this test (zero-based).
+                          Tests are executed sequentially based on this value.
+                        minimum: 0
+                        example: 0
                       feature:
-                        templatePath: "basic/test.feature"
+                        type: object
+                        description: |
+                          Feature definition - either a template path OR custom script.
+                          You must provide exactly one of templatePath or featureScript.
+                        properties:
+                          templatePath:
+                            type: string
+                            nullable: true
+                            description: |
+                              Path to a feature template file in the library.
+                              Path is relative to `data/manager/lib/features/`.
+                              Example: "basic/test.feature" points to
+                              `data/manager/lib/features/basic/test.feature`
+                            example: "basic/test.feature"
+                          featureScript:
+                            type: string
+                            nullable: true
+                            description: |
+                              Custom feature script in Gherkin format.
+                              Use this for one-off tests not in the library.
+                              Must be valid Gherkin syntax.
+                            example: |
+                              Feature: Login Test
+                                Scenario: Successful login
+                                  Given I am on the login page
+                                  When I enter valid credentials
+                                  Then I should be logged in
                       testData:
-                        - templatePath: "test_data.txt"
-                      headless: false
-                      timeout: 300
-                  mock: false
+                        type: array
+                        nullable: true
+                        description: |
+                          Optional array of test data templates.
+                          Each template provides variables for the feature script.
+                        items:
+                          type: object
+                          required:
+                            - templatePath
+                          properties:
+                            templatePath:
+                              type: string
+                              description: |
+                                Path to test data file relative to `data/manager/lib/test_data/`.
+                                Contains key-value pairs for variable substitution.
+                                Example: "credentials.txt" contains username=test&password=pass
+                              example: "test_data.txt"
+                      headless:
+                        type: boolean
+                        default: false
+                        description: |
+                          Whether to run the browser in headless mode.
+                          - false: Browser window is visible (useful for debugging)
+                          - true: Browser runs without UI (better for CI/CD)
+                        example: false
+                      timeout:
+                        type: integer
+                        default: 300
+                        description: |
+                          Maximum time in seconds for test execution.
+                          Test will be terminated if it exceeds this limit.
+                        minimum: 1
+                        maximum: 3600
+                        example: 300
+                      browser:
+                        type: string
+                        enum: ["chromium", "firefox", "webkit"]
+                        default: "chromium"
+                        description: |
+                          Browser engine to use for test execution.
+                          - chromium: Chrome/Edge compatible
+                          - firefox: Mozilla Firefox
+                          - webkit: Safari compatible
+                        example: "chromium"
+                mock:
+                  type: boolean
+                  default: false
+                  description: |
+                    Controls whether tests are actually executed or simulated.
+                    - false: Tests are executed normally
+                    - true: Tests are validated and simulated without actual execution
+                  example: false
+                environment:
+                  type: string
+                  enum: ["production", "staging", "development", "test"]
+                  default: "test"
+                  description: |
+                    Target environment for test execution.
+                    May affect environment-specific configurations.
+                  example: "test"
       responses:
         '200':
-          description: Tests started successfully
+          description: Tests scheduled successfully
           content:
             application/json:
               schema:
@@ -637,16 +720,32 @@ paths:
                 properties:
                   execution_id:
                     type: string
-                    description: Unique identifier for tracking the test execution
+                    description: |
+                      Unique identifier for tracking the test execution.
+                      Use this ID to monitor progress and retrieve results.
+                    example: "123e4567-e89b-12d3-a456-426614174000"
                   status:
                     type: string
-                    description: Initial status of the execution (typically "pending" or "running")
+                    description: |
+                      Initial status of the execution.
+                      - "pending": Tests are scheduled but not yet started
+                      - "running": Tests are currently executing
+                      - "mocked": Tests were run in mock mode
+                    enum: ["pending", "running", "mocked"]
+                    example: "pending"
+                  start_time:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the execution was created
+                    example: "2024-01-15T10:30:00Z"
                   message:
                     type: string
-                    description: Human-readable success message
+                    description: Human-readable message about the execution
+                    example: "Tests started successfully"
                   test_count:
                     type: integer
                     description: Number of tests included in this execution
+                    example: 1
                   tests:
                     type: array
                     description: Details of individual tests in this execution
@@ -656,9 +755,34 @@ paths:
                         order:
                           type: integer
                           description: Execution order of this test
+                          example: 0
                         test_id:
                           type: string
                           description: Unique identifier for this specific test
+                          example: "test_0"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    description: Error message describing what went wrong
+                    example: "Either templatePath or featureScript must be provided"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    description: Error message describing the server error
+                    example: "Error running tests from templates: Database connection failed"
+
 
   /library/content:
     get:

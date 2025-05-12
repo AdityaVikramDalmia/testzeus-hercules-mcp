@@ -151,7 +151,7 @@ The system handles all test resource management, configuration, and execution in
                  # describe_all_responses=True,
                  # describe_full_response_schema=True,
                  # Explicitly include the run-from-template endpoint to ensure it's exposed
-                 include_operations=["getTestChecking","getExecutionList","getExecutionDetails"],
+                 include_operations=["getTestChecking","getExecutionList","getExecutionDetails","runningATemplate"],
                  )
 mcp.mount()
 

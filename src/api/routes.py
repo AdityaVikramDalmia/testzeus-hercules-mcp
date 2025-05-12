@@ -1307,7 +1307,7 @@ async def get_test_checking():
     """
     return {"message": "pong"}
 
-@app.post("/tests/run-from-template")
+@app.post("/tests/run-from-template-new", operation_id="runningATemplate")
 async def run_tests_from_template(request: TestInfosRequest, background_tasks: BackgroundTasks):
     """Run tests using templates or scripts from the library.
 
