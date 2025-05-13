@@ -1,0 +1,45 @@
+name: Hercules CI (Docker)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    container:
+      image: testzeus/hercules:latest
+      options: >-
+        --entrypoint tail -f /dev/null
+      env:
+        AUTO_MODE: "1"
+        HEADLESS: "true"
+        SERVER_NAME: "TestZeus-Hercules-MCP"
+        SERVER_VERSION: "1.0.0"
+        LLM_MODEL_NAME: "gpt-4.1-mini"
+        LLM_MODEL_BASE_URL: "https://api.openai.com/v1"
+        LLM_MODEL_API_TYPE: "openai"
+        LLM_MODEL_API_KEY: ${{ secrets.LLM_API_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Hercules tests
+        run: testzeus-hercules --project-base=opt
+
+      - name: Upload JUnit XML reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-reports
+          path: opt/output/*.xml
+
+      - name: Upload HTML reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-report
+          path: opt/output/*.html
