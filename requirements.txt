@@ -8,3 +8,4 @@ fastapi-mcp
 fastmcp==2.1.2
 mcp>=1.6.0
 fastapi-mcp-client
+fastapi_mcp
