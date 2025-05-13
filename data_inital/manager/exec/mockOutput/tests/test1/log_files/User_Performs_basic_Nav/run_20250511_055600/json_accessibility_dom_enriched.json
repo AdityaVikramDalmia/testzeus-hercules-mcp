@@ -1,0 +1,302 @@
+{
+  "tag": "div",
+  "name": "Index About Related Sites",
+  "children": [
+    {
+      "tag": "div",
+      "name": "Index About Related Sites",
+      "children": [
+        {
+          "md": "1",
+          "tag": "a",
+          "role": "link",
+          "name": "Index"
+        },
+        {
+          "tag": "div",
+          "name": "About Related Sites",
+          "children": [
+            {
+              "md": "2",
+              "tag": "a",
+              "role": "link",
+              "name": "About"
+            },
+            {
+              "md": "3",
+              "tag": "a",
+              "role": "link",
+              "name": "Related Sites"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "div",
+      "name": "About TestPages",
+      "children": [
+        {
+          "tag": "h1",
+          "name": "About TestPages"
+        },
+        {
+          "tag": "p",
+          "name": "This is a set of pages to use for practicing automating or testing."
+        },
+        {
+          "tag": "div",
+          "name": "About",
+          "children": [
+            {
+              "md": "4",
+              "tag": "a",
+              "role": "link",
+              "name": "About"
+            },
+            {
+              "md": "5",
+              "tag": "a",
+              "role": "link",
+              "name": "Pages"
+            },
+            {
+              "md": "6",
+              "tag": "a",
+              "role": "link",
+              "name": "Support These Pages"
+            },
+            {
+              "md": "7",
+              "tag": "a",
+              "role": "link",
+              "name": "Sponsoring"
+            },
+            {
+              "md": "8",
+              "tag": "a",
+              "role": "link",
+              "name": "History"
+            }
+          ]
+        },
+        {
+          "tag": "h2",
+          "name": "About"
+        },
+        {
+          "tag": "p",
+          "name": "I (Alan Richardson) created this, because I believe the best way to improve your testing skills is to practice.",
+          "children": [
+            {
+              "md": "9",
+              "tag": "a",
+              "role": "link",
+              "name": "I (Alan Richardson)"
+            }
+          ]
+        },
+        {
+          "tag": "p",
+          "name": "Learning how to practice is a skill that takes time."
+        },
+        {
+          "tag": "p",
+          "name": "Testing is a rich and varied process. There are many different ways of viewing a system and exploring its functionality. Each exercise and test page will pay dividends on repeat visits."
+        },
+        {
+          "tag": "p",
+          "name": "The more you learn how to practice, the more value you can get from these pages."
+        },
+        {
+          "tag": "p",
+          "name": "Patreon supporters can download a free 205 page ebook of exercises and notes based on one of these pages, the 7 Char Validation application.",
+          "children": [
+            {
+              "md": "10",
+              "tag": "a",
+              "role": "link",
+              "name": "free 205 page ebook of exercises and notes"
+            },
+            {
+              "md": "11",
+              "tag": "a",
+              "role": "link",
+              "name": "7 Char Validation application"
+            }
+          ]
+        },
+        {
+          "tag": "p",
+          "name": "The secret to Software Testing is Taking Action. When we are faced with a system that we don't know, or don't know how to test, then we try, we explore. By taking action we learn:"
+        },
+        {
+          "tag": "ul",
+          "name": "what we don't know and can then investigate and research to allow us to proceed.",
+          "children": [
+            {
+              "tag": "li",
+              "name": "what we don't know and can then investigate and research to allow us to proceed."
+            },
+            {
+              "tag": "li",
+              "name": "what paths are open to us and we can quickly proceed to exploration."
+            }
+          ]
+        },
+        {
+          "tag": "p",
+          "name": "We learn by doing."
+        },
+        {
+          "tag": "h2",
+          "name": "Pages"
+        },
+        {
+          "tag": "p",
+          "name": "Some of the examples are suitable for manual exploratory testing, learning HTML, learning Technical Web Testing, and JavaScript hacking."
+        },
+        {
+          "tag": "p",
+          "name": "The \"About\" page for each of the practice pages should provide more hints, tips and possibly sample exercises."
+        },
+        {
+          "tag": "h2",
+          "name": "Support These Pages"
+        },
+        {
+          "tag": "p",
+          "name": "If you find these pages useful then you can support their development and expansion by signing up for our Patreon Membership. From as little as $1 a month you gain access to all the online training courses and ebooks on TesterHQ.com, early access to ad-free YouTube videos and podcasts, and regular exclusive posts.",
+          "children": [
+            {
+              "md": "12",
+              "tag": "a",
+              "role": "link",
+              "name": "Patreon Membership"
+            },
+            {
+              "md": "13",
+              "tag": "a",
+              "role": "link",
+              "name": "TesterHQ.com"
+            }
+          ]
+        },
+        {
+          "tag": "p",
+          "name": "Learn more, and support this site with a Patreon Membership.",
+          "children": [
+            {
+              "md": "14",
+              "tag": "a",
+              "role": "link",
+              "name": "Patreon Membership"
+            }
+          ]
+        },
+        {
+          "tag": "h2",
+          "name": "Sponsoring"
+        },
+        {
+          "tag": "p",
+          "name": "If you are a company, interested in sponsoring the pages and seeing your logo on this site then contact Alan Richardson via LinkedIn.",
+          "children": [
+            {
+              "md": "15",
+              "tag": "a",
+              "role": "link",
+              "name": "Alan Richardson via LinkedIn"
+            }
+          ]
+        },
+        {
+          "tag": "h2",
+          "name": "History"
+        },
+        {
+          "tag": "p",
+          "name": "This is a set of pages which were originally written for the purpose of training people in Selenium/WebDriver, and working through books written by Alan Richardson"
+        },
+        {
+          "tag": "ul",
+          "name": "Online Training Courses",
+          "children": [
+            {
+              "md": "16",
+              "tag": "a",
+              "role": "link",
+              "name": "Online Training Courses"
+            },
+            {
+              "md": "17",
+              "tag": "a",
+              "role": "link",
+              "name": "Books"
+            }
+          ]
+        },
+        {
+          "tag": "p",
+          "name": "The original pages are still available on github.",
+          "children": [
+            {
+              "md": "18",
+              "tag": "a",
+              "role": "link",
+              "name": "github"
+            }
+          ]
+        },
+        {
+          "tag": "p",
+          "name": "You may use these pages for study and practice. You can download the source from github.",
+          "children": [
+            {
+              "md": "19",
+              "tag": "a",
+              "role": "link",
+              "name": "github"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "p",
+      "name": "EvilTester.com, Compendium Developments",
+      "children": [
+        {
+          "md": "20",
+          "tag": "a",
+          "role": "link",
+          "name": "EvilTester.com"
+        },
+        {
+          "md": "21",
+          "tag": "a",
+          "role": "link",
+          "name": "Compendium Developments"
+        }
+      ]
+    },
+    {
+      "tag": "p",
+      "name": "Help keep this site free by joining our Patreon Membership site. Membership costs as little as $1 a month and includes access to exclusive e-books and online training courses.",
+      "children": [
+        {
+          "md": "22",
+          "tag": "a",
+          "role": "link",
+          "name": "Patreon Membership site"
+        },
+        {
+          "md": "23",
+          "tag": "a",
+          "role": "link",
+          "name": "e-books and online training courses"
+        }
+      ]
+    }
+  ]
+}
