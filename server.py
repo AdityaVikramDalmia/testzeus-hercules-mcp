@@ -186,6 +186,7 @@ TestZeus Hercules is a powerful MCP server that orchestrates automated test exec
   - Parallel test execution with unique directory management
   - Contains a field `wsUrl` that returns a websocket url to monitor the progress of the execution, WebSocket URL to receive real-time logs for this execution. Useful for observing execution progress in a separate terminal or IDE. THIS SHOULD BE UTILISED TO MONITOR IN BACKGROUND. COMMAND CAN WE BUSED IWTH SOCAT like  websocat ws://127.0.0.1:8003/ws/logs/13db9744-abe6-4947-80cc-8612a91a0e21
 
+
 ### 5. Bulk File Upload (`bulkUploadTestDefinitionFiles`)
 - **Endpoint**: `POST /bulk-upload-files`
 - **Purpose**: Upload multiple test files in a single operation
