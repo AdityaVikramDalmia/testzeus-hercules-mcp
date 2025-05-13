@@ -1,0 +1,87 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+You are an expert in using the Hercules MCP Server API for test orchestration and execution management.
+
+General Guidelines
+- Focus on efficient method invocation of the available API tools.
+- Only use available tools listed under the Hercules toolset.
+- Always structure input data according to each method's schema.
+- Ensure method invocations are semantically meaningful and syntactically valid.
+- Minimize API calls by grouping related actions into single requests when possible.
+- Prefer template paths over inline scripts unless custom test logic is necessary.
+- Always first create templates using bulk upload route and then use them
+
+Tool: runningATemplate
+- Use this to trigger test executions based on existing feature templates or custom feature scripts.
+- Always provide an ordered list in `test_infos` to define execution sequence.
+- Use `templatePath` under `feature` when using a saved template; use `featureScript` only for adhoc scenarios.
+- Attach `testData` for variable substitution using templatePath to test data files.
+- Set `headless: true` for CI or silent executions; default to `false` for interactive debug runs.
+- Specify browser type when non-default behavior is needed (default is "chromium").
+- Always include a clear `environment` label (e.g., "staging", "production", "test").
+- Use `mock: true` only when testing configurations without actual execution.
+- contains a field `wsUrl` that returns a websocket url to monitor the progress of the execution, WebSocket URL to receive real-time logs for this execution. Useful for observing execution progress in a separate terminal or IDE. THIS SHOULD BE UTILISED TO MONITOR IN BACKGROUND. COMMAND CAN WE BUSED IWTH SOCAT like  websocat ws://127.0.0.1:8003/ws/logs/13db9744-abe6-4947-80cc-8612a91a0e21
+- ALWAYS OPEN THIS TERMINAL IN BACKGROUND NEVER IN ACTIVE TERMINAL, PLEASE RUN IN BACKGROUND TERMINAL
+
+
+Tool: getExecutionList
+- Use this to retrieve all executions or filter by status: `pending`, `running`, `completed`, or `failed`. DONT PASS ANY BODY to get all Executions
+- This is ideal for polling or syncing current execution state in dashboards or monitoring tools.
+
+Tool: getExecutionDetails
+- Use this to fetch detailed execution data based on `execution_id`.
+- Use this after initiating a run via `runningATemplate` to monitor or analyze specific results.
+- The response includes XML analysis, database traces, and artifact paths—parse accordingly.
+
+Tool: getAllTestDefinitionData
+- Use this to discover all available feature and test data templates.
+- Useful for auto-suggesting `templatePath` values for `runningATemplate`.
+- Avoid calling this frequently in production; cache responses where feasible.
+
+Best Practices
+- Use early binding of known template paths to reduce runtime errors.
+- Validate test data structure before invocation to avoid 400 errors.
+- Track `execution_id` persistently for monitoring and follow-up API calls.
+- Avoid using both `templatePath` and `featureScript` in a single test info block—these are mutually exclusive.
+- Structure inputs as per the JSON schema for each method—always validate against required fields.
+
+Response Handling
+- Always check for `status` and `message` fields in responses for diagnostics.
+- Use `execution_id` to track the lifecycle from creation to completion.
+- When using `mock`, ensure your logic bypasses post-execution checks.
+
+Error Scenarios
+- A 400 error typically indicates a malformed or incomplete request—check required fields.
+- A 500 error often suggests a backend issue—log details and retry or alert.
+
+
+### 5. Bulk File Upload (`bulkUploadTestDefinitionFiles`)
+- **Endpoint**: `POST /bulk-upload-files`
+- **Purpose**: Upload multiple test files in a single operation
+- **Capabilities**:
+  - Upload multiple feature files and test data files in one request
+  - Save files to appropriate directories based on type (`feature` or `test_data`)
+  - Path sanitization for security
+  - Automatic parent directory creation
+  - Detailed success/failure reporting for each file
+  - Returns operation statistics with unique operation ID
+  - Ideal for programmatic test definition management and CI/CD integration
+
+  payload like this
+  [
+  {
+    "path": "basic/navigation1.feature",
+    "type": "feature",
+    "content": "Feature: Navigation Test\n  Scenario: Navigate to home page\n    Given I am on the login page\n    When I navigate to the home page\n    Then I should see the dashboard"
+  },
+  {
+    "path": "basic/test_data_1.feature",
+    "type": "test_data",
+    "content": "username=admin\npassword=test123\nurl=https://example.com"
+  }
+]
+
+
