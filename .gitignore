@@ -51,7 +51,7 @@ htmlcov/
 coverage.xml
 *.cover
 .hypothesis/
-
+data/
 # Log files
 logs/
 *.log
@@ -60,7 +60,6 @@ logs/
 .cache/
 .windsurf/
 installation_id.txt
-opt/
 
 # Docker
 .dockerignore

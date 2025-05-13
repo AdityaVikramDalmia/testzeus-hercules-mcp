@@ -1,0 +1,850 @@
+{
+  "tag": "div",
+  "name": "Index About Related Sites",
+  "children": [
+    {
+      "tag": "div",
+      "name": "Index About Related Sites",
+      "children": [
+        {
+          "md": "1",
+          "tag": "a",
+          "role": "link",
+          "name": "Index"
+        },
+        {
+          "tag": "div",
+          "name": "About Related Sites",
+          "children": [
+            {
+              "md": "2",
+              "tag": "a",
+              "role": "link",
+              "name": "About"
+            },
+            {
+              "md": "3",
+              "tag": "a",
+              "role": "link",
+              "name": "Related Sites"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "h1",
+      "name": "Practice Applications and Pages For Automating and Testing"
+    },
+    {
+      "tag": "div",
+      "name": "This is a set of applications and example pages for practicing Automation, Software Testing, Web Automating, Exploratory Testing, and JavaScript Hacking. Each page has an About page with more information and activity hints.",
+      "children": [
+        {
+          "tag": "p",
+          "name": "This is a set of applications and example pages for practicing Automation, Software Testing, Web Automating, Exploratory Testing, and JavaScript Hacking. Each page has an About page with more information and activity hints."
+        },
+        {
+          "tag": "p",
+          "name": "[Learn More] [More Practice Sites]",
+          "children": [
+            {
+              "md": "4",
+              "tag": "a",
+              "role": "link",
+              "name": "Learn More"
+            },
+            {
+              "md": "5",
+              "tag": "a",
+              "role": "link",
+              "name": "More Practice Sites"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "h2",
+      "name": "Examples"
+    },
+    {
+      "tag": "p",
+      "name": "These pages are simple example and exercise pages."
+    },
+    {
+      "tag": "ul",
+      "name": "Basic Web Page Example",
+      "children": [
+        {
+          "md": "6",
+          "tag": "a",
+          "role": "link",
+          "name": "Basic Web Page Example"
+        },
+        {
+          "md": "7",
+          "tag": "a",
+          "role": "link",
+          "name": "Element Attributes Examples"
+        },
+        {
+          "md": "8",
+          "tag": "a",
+          "role": "link",
+          "name": "Locators - Find By Playground Test Page"
+        },
+        {
+          "md": "9",
+          "tag": "a",
+          "role": "link",
+          "name": "WebDriver Example Page"
+        },
+        {
+          "tag": "li",
+          "name": "HTML Tag Examples",
+          "children": [
+            {
+              "tag": "ul",
+              "name": "Table Test Page",
+              "children": [
+                {
+                  "md": "10",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Table Test Page"
+                },
+                {
+                  "md": "11",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Dynamic Table Test Page"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "li",
+          "name": "Alerts",
+          "children": [
+            {
+              "tag": "ul",
+              "name": "Alerts (JavaScript)",
+              "children": [
+                {
+                  "md": "12",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Alerts (JavaScript)"
+                },
+                {
+                  "md": "13",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Fake Alerts"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "li",
+          "name": "Frames",
+          "children": [
+            {
+              "tag": "ul",
+              "name": "Frames Test Page",
+              "children": [
+                {
+                  "md": "14",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Frames Test Page"
+                },
+                {
+                  "md": "15",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "iFrames Test Page"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "li",
+          "name": "Forms & Windows",
+          "children": [
+            {
+              "tag": "ul",
+              "name": "HTML Form Example",
+              "children": [
+                {
+                  "md": "16",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "HTML Form Example"
+                },
+                {
+                  "md": "17",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "HTML5 Element Form Test Page"
+                },
+                {
+                  "md": "18",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Windows Link Test Page"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "li",
+          "name": "JavaScript",
+          "children": [
+            {
+              "tag": "ul",
+              "name": "Ajax JavaScript Examples",
+              "children": [
+                {
+                  "md": "19",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Ajax JavaScript Examples"
+                },
+                {
+                  "md": "20",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Drag And Drop Test Page (JavaScript)"
+                },
+                {
+                  "md": "21",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Field Validation With JavaScript Example"
+                },
+                {
+                  "md": "22",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Key Click Display Test Page"
+                },
+                {
+                  "md": "23",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Redirect (JavaScript) Test Page"
+                },
+                {
+                  "md": "24",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Refresh Test Page"
+                },
+                {
+                  "md": "25",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Alerts (JavaScript)"
+                },
+                {
+                  "md": "26",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Events (JavaScript)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "li",
+          "name": "CSS Pseudo Classes",
+          "children": [
+            {
+              "md": "27",
+              "tag": "a",
+              "role": "link",
+              "name": "Hover Test Page"
+            }
+          ]
+        },
+        {
+          "tag": "li",
+          "name": "User Agents",
+          "children": [
+            {
+              "md": "28",
+              "tag": "a",
+              "role": "link",
+              "name": "User Agent Redirect Page"
+            }
+          ]
+        },
+        {
+          "tag": "li",
+          "name": "Authentication",
+          "children": [
+            {
+              "md": "29",
+              "tag": "a",
+              "role": "link",
+              "name": "Basic Authentication Protected Page"
+            }
+          ]
+        },
+        {
+          "tag": "li",
+          "name": "CSS",
+          "children": [
+            {
+              "md": "30",
+              "tag": "a",
+              "role": "link",
+              "name": "CSS Media Query Based On Size"
+            }
+          ]
+        },
+        {
+          "tag": "li",
+          "name": "Synchronisation",
+          "children": [
+            {
+              "tag": "ul",
+              "name": "Expanding Div via CSS",
+              "children": [
+                {
+                  "md": "31",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Expanding Div via CSS"
+                },
+                {
+                  "md": "32",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Dynamic Buttons Challenge 01"
+                },
+                {
+                  "md": "33",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Dynamic Buttons Challenge 02"
+                },
+                {
+                  "md": "34",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Multiple Progress Bars"
+                },
+                {
+                  "md": "35",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "XHTTP Message Processing"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "li",
+          "name": "Files",
+          "children": [
+            {
+              "tag": "ul",
+              "name": "File Upload Example Page",
+              "children": [
+                {
+                  "md": "36",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "File Upload Example Page"
+                },
+                {
+                  "md": "37",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "File Downloads"
+                },
+                {
+                  "md": "38",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "JavaScript Initiated File Downloads"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "li",
+          "name": "Cookies",
+          "children": [
+            {
+              "tag": "li",
+              "name": "Cookies Controlling Page Access - login page simulation",
+              "children": [
+                {
+                  "md": "39",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Cookies Controlling Page Access"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "h2",
+      "name": "Testing References"
+    },
+    {
+      "tag": "p",
+      "name": "These pages describe HTML concepts in more detail from a Software Testing perspective."
+    },
+    {
+      "md": "40",
+      "tag": "a",
+      "role": "link",
+      "name": "Input Elements"
+    },
+    {
+      "tag": "h2",
+      "name": "Challenges"
+    },
+    {
+      "tag": "p",
+      "name": "These pages offer automation challenges."
+    },
+    {
+      "tag": "ul",
+      "name": "Click the auto grow button",
+      "children": [
+        {
+          "md": "41",
+          "tag": "a",
+          "role": "link",
+          "name": "Click the auto grow button"
+        },
+        {
+          "md": "42",
+          "tag": "a",
+          "role": "link",
+          "name": "Hard to Select Buttons"
+        }
+      ]
+    },
+    {
+      "tag": "h2",
+      "name": "Micro Apps"
+    },
+    {
+      "tag": "p",
+      "name": "These pages are also suitable for exploratory testing and longer exercises."
+    },
+    {
+      "tag": "div",
+      "name": "Client Server Form Input Validation",
+      "children": [
+        {
+          "tag": "div",
+          "name": "Client Server Form Input Validation",
+          "children": [
+            {
+              "md": "43",
+              "tag": "a",
+              "role": "link",
+              "children": [
+                {
+                  "md": "44",
+                  "tag": "img"
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "Client Server Form Input Validation",
+              "children": [
+                {
+                  "md": "45",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Client Server Form Input Validation"
+                },
+                {
+                  "tag": "p",
+                  "name": "This page has input validation using JavaScript, HTML5 and there is associated server side validation. For exploratory testing, this page may have been coded with some bugs. For automating, it is a relatively simple form with a submission."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "Calculator",
+          "children": [
+            {
+              "md": "46",
+              "tag": "a",
+              "role": "link",
+              "children": [
+                {
+                  "md": "47",
+                  "tag": "img"
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "Calculator",
+              "children": [
+                {
+                  "md": "48",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Calculator"
+                },
+                {
+                  "tag": "p",
+                  "name": "When you submit the calculation the request is sent to the server and the returned web page contains the calculated answer."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "Button Based Calculator",
+          "children": [
+            {
+              "md": "49",
+              "tag": "a",
+              "role": "link",
+              "children": [
+                {
+                  "md": "50",
+                  "tag": "img"
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "Button Based Calculator",
+              "children": [
+                {
+                  "md": "51",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Button Based Calculator"
+                },
+                {
+                  "tag": "p",
+                  "name": "This is a simple button based calculator. Automate or explore for state based issues."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "The Famous Triangle Application",
+          "children": [
+            {
+              "md": "52",
+              "tag": "a",
+              "role": "link",
+              "children": [
+                {
+                  "md": "53",
+                  "tag": "img"
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "The Famous Triangle Application",
+              "children": [
+                {
+                  "md": "54",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "The Famous Triangle Application"
+                },
+                {
+                  "tag": "p",
+                  "name": "The Classic Software Testing Exercise. Enter the lengths of the three sides of a triangle. The program will inform you if the triangle is equilateral, isosceles or scalene."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "Canvas Scribble Test Page",
+          "children": [
+            {
+              "md": "55",
+              "tag": "a",
+              "role": "link",
+              "children": [
+                {
+                  "md": "56",
+                  "tag": "img"
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "Canvas Scribble Test Page",
+              "children": [
+                {
+                  "md": "57",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Canvas Scribble Test Page"
+                },
+                {
+                  "tag": "p",
+                  "name": "Use the mouse and you can draw in the plain canvas."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "Canvas Drawing with JavaScript Example",
+          "children": [
+            {
+              "md": "58",
+              "tag": "a",
+              "role": "link",
+              "children": [
+                {
+                  "md": "59",
+                  "tag": "img"
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "Canvas Drawing with JavaScript Example",
+              "children": [
+                {
+                  "md": "60",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Canvas Drawing with JavaScript Example"
+                },
+                {
+                  "tag": "p",
+                  "name": "A canvas drawing tool, with a basic GUI interface. The 'commands history' is shown on the right."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "JavaScript Countdown Test Page",
+          "children": [
+            {
+              "md": "61",
+              "tag": "a",
+              "role": "link",
+              "children": [
+                {
+                  "md": "62",
+                  "tag": "img"
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "JavaScript Countdown Test Page",
+              "children": [
+                {
+                  "md": "63",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "JavaScript Countdown Test Page"
+                },
+                {
+                  "tag": "p",
+                  "name": "Configure and control the countdown timer using the input field and buttons."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "Search",
+          "children": [
+            {
+              "md": "64",
+              "tag": "a",
+              "role": "link",
+              "children": [
+                {
+                  "md": "65",
+                  "tag": "img"
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "Search",
+              "children": [
+                {
+                  "md": "66",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Search"
+                },
+                {
+                  "tag": "div",
+                  "name": "A very simple server based search engine.",
+                  "children": [
+                    {
+                      "tag": "p",
+                      "name": "A very simple server based search engine."
+                    },
+                    {
+                      "tag": "p",
+                      "name": "There is some matching of your search term to the hardcoded data in the backend, if not enough results are matched the the list of results will be filled with random results to make up the numbers."
+                    },
+                    {
+                      "tag": "p",
+                      "name": "There will always be the same number of results returned."
+                    },
+                    {
+                      "tag": "p",
+                      "name": "Cookies are used for the page and much of this page functionality concerns the cookies."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "7 Char Val Validation",
+          "children": [
+            {
+              "md": "67",
+              "tag": "a",
+              "role": "link",
+              "children": [
+                {
+                  "md": "68",
+                  "tag": "img"
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "7 Char Val Validation",
+              "children": [
+                {
+                  "md": "69",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "7 Char Val Validation"
+                },
+                {
+                  "tag": "p",
+                  "name": "This is a simple JavaScript powered validation input. Only A-Z, a-z, 0-9, and * are valid characters."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "Simple Note Taker - session and localstorage",
+          "children": [
+            {
+              "md": "70",
+              "tag": "a",
+              "role": "link",
+              "children": [
+                {
+                  "md": "71",
+                  "tag": "img"
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "Simple Note Taker - session and localstorage",
+              "children": [
+                {
+                  "tag": "p",
+                  "name": "Simple Note Taker - session and localstorage",
+                  "children": [
+                    {
+                      "md": "72",
+                      "tag": "a",
+                      "role": "link",
+                      "name": "Simple Note Taker"
+                    }
+                  ]
+                },
+                {
+                  "tag": "p",
+                  "name": "This is a simple note taking application where the notes are stored locally in the browser application storage."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "p",
+      "name": "Help keep this site free by joining our Patreon Membership site. Membership costs as little as $1 a month and includes access to exclusive e-books and online training courses.",
+      "children": [
+        {
+          "md": "73",
+          "tag": "a",
+          "role": "link",
+          "name": "Patreon Membership site"
+        },
+        {
+          "md": "74",
+          "tag": "a",
+          "role": "link",
+          "name": "e-books and online training courses"
+        }
+      ]
+    },
+    {
+      "tag": "p",
+      "name": "EvilTester.com, Compendium Developments",
+      "children": [
+        {
+          "md": "75",
+          "tag": "a",
+          "role": "link",
+          "name": "EvilTester.com"
+        },
+        {
+          "md": "76",
+          "tag": "a",
+          "role": "link",
+          "name": "Compendium Developments"
+        }
+      ]
+    }
+  ]
+}

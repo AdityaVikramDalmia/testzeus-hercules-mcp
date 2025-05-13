@@ -1,0 +1,482 @@
+{
+  "tag": "body",
+  "name": "Index About Related Sites",
+  "level": 1,
+  "children": [
+    {
+      "tag": "div",
+      "name": "Index About Related Sites",
+      "level": 2,
+      "children": [
+        {
+          "tag": "div",
+          "name": "Index About Related Sites",
+          "level": 3,
+          "children": [
+            {
+              "tag": "div",
+              "name": "Index",
+              "level": 4,
+              "children": [
+                {
+                  "md": "1",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Index",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "About Related Sites",
+              "level": 4,
+              "children": [
+                {
+                  "md": "2",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "About",
+                  "level": 5,
+                  "children": []
+                },
+                {
+                  "md": "3",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Related Sites",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "About TestPages",
+          "level": 3,
+          "children": [
+            {
+              "tag": "h1",
+              "name": "About TestPages",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "div",
+              "name": "This is a set of pages to use for practicing automating or testing.",
+              "level": 4,
+              "children": [
+                {
+                  "tag": "p",
+                  "name": "This is a set of pages to use for practicing automating or testing.",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "div",
+              "name": "About",
+              "level": 4,
+              "children": [
+                {
+                  "tag": "div",
+                  "name": "About",
+                  "level": 5,
+                  "children": [
+                    {
+                      "md": "4",
+                      "tag": "a",
+                      "role": "link",
+                      "name": "About",
+                      "level": 6,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "tag": "div",
+                  "name": "Pages",
+                  "level": 5,
+                  "children": [
+                    {
+                      "md": "5",
+                      "tag": "a",
+                      "role": "link",
+                      "name": "Pages",
+                      "level": 6,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "tag": "div",
+                  "name": "Support These Pages",
+                  "level": 5,
+                  "children": [
+                    {
+                      "md": "6",
+                      "tag": "a",
+                      "role": "link",
+                      "name": "Support These Pages",
+                      "level": 6,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "tag": "div",
+                  "name": "Sponsoring",
+                  "level": 5,
+                  "children": [
+                    {
+                      "md": "7",
+                      "tag": "a",
+                      "role": "link",
+                      "name": "Sponsoring",
+                      "level": 6,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "tag": "div",
+                  "name": "History",
+                  "level": 5,
+                  "children": [
+                    {
+                      "md": "8",
+                      "tag": "a",
+                      "role": "link",
+                      "name": "History",
+                      "level": 6,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "tag": "h2",
+              "name": "About",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "p",
+              "name": "I (Alan Richardson) created this, because I believe the best way to improve your testing skills is to practice.",
+              "level": 4,
+              "children": [
+                {
+                  "md": "9",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "I (Alan Richardson)",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "p",
+              "name": "Learning how to practice is a skill that takes time.",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "p",
+              "name": "Testing is a rich and varied process. There are many different ways of viewing a system and exploring its functionality. Each exercise and test page will pay dividends on repeat visits.",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "p",
+              "name": "The more you learn how to practice, the more value you can get from these pages.",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "p",
+              "name": "Patreon supporters can download a free 205 page ebook of exercises and notes based on one of these pages, the 7 Char Validation application.",
+              "level": 4,
+              "children": [
+                {
+                  "md": "10",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "free 205 page ebook of exercises and notes",
+                  "level": 5,
+                  "children": []
+                },
+                {
+                  "md": "11",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "7 Char Validation application",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "p",
+              "name": "The secret to Software Testing is Taking Action. When we are faced with a system that we don't know, or don't know how to test, then we try, we explore. By taking action we learn:",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "ul",
+              "name": "what we don't know and can then investigate and research to allow us to proceed.",
+              "level": 4,
+              "children": [
+                {
+                  "tag": "li",
+                  "name": "what we don't know and can then investigate and research to allow us to proceed.",
+                  "level": 5,
+                  "children": []
+                },
+                {
+                  "tag": "li",
+                  "name": "what paths are open to us and we can quickly proceed to exploration.",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "p",
+              "name": "We learn by doing.",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "h2",
+              "name": "Pages",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "p",
+              "name": "Some of the examples are suitable for manual exploratory testing, learning HTML, learning Technical Web Testing, and JavaScript hacking.",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "p",
+              "name": "The \"About\" page for each of the practice pages should provide more hints, tips and possibly sample exercises.",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "h2",
+              "name": "Support These Pages",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "p",
+              "name": "If you find these pages useful then you can support their development and expansion by signing up for our Patreon Membership. From as little as $1 a month you gain access to all the online training courses and ebooks on TesterHQ.com, early access to ad-free YouTube videos and podcasts, and regular exclusive posts.",
+              "level": 4,
+              "children": [
+                {
+                  "md": "12",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Patreon Membership",
+                  "level": 5,
+                  "children": []
+                },
+                {
+                  "md": "13",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "TesterHQ.com",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "p",
+              "name": "Learn more, and support this site with a Patreon Membership.",
+              "level": 4,
+              "children": [
+                {
+                  "md": "14",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Patreon Membership",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "h2",
+              "name": "Sponsoring",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "p",
+              "name": "If you are a company, interested in sponsoring the pages and seeing your logo on this site then contact Alan Richardson via LinkedIn.",
+              "level": 4,
+              "children": [
+                {
+                  "md": "15",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Alan Richardson via LinkedIn",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "h2",
+              "name": "History",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "p",
+              "name": "This is a set of pages which were originally written for the purpose of training people in Selenium/WebDriver, and working through books written by Alan Richardson",
+              "level": 4,
+              "children": []
+            },
+            {
+              "tag": "ul",
+              "name": "Online Training Courses",
+              "level": 4,
+              "children": [
+                {
+                  "tag": "li",
+                  "name": "Online Training Courses",
+                  "level": 5,
+                  "children": [
+                    {
+                      "md": "16",
+                      "tag": "a",
+                      "role": "link",
+                      "name": "Online Training Courses",
+                      "level": 6,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "tag": "li",
+                  "name": "Books",
+                  "level": 5,
+                  "children": [
+                    {
+                      "md": "17",
+                      "tag": "a",
+                      "role": "link",
+                      "name": "Books",
+                      "level": 6,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "tag": "p",
+              "name": "The original pages are still available on github.",
+              "level": 4,
+              "children": [
+                {
+                  "md": "18",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "github",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "p",
+              "name": "You may use these pages for study and practice. You can download the source from github.",
+              "level": 4,
+              "children": [
+                {
+                  "md": "19",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "github",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "EvilTester.com, Compendium Developments",
+          "level": 3,
+          "children": [
+            {
+              "tag": "p",
+              "name": "EvilTester.com, Compendium Developments",
+              "level": 4,
+              "children": [
+                {
+                  "md": "20",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "EvilTester.com",
+                  "level": 5,
+                  "children": []
+                },
+                {
+                  "md": "21",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Compendium Developments",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "div",
+          "name": "Help keep this site free by joining our Patreon Membership site. Membership costs as little as $1 a month and includes access to exclusive e-books and online training courses.",
+          "level": 3,
+          "children": [
+            {
+              "tag": "p",
+              "name": "Help keep this site free by joining our Patreon Membership site. Membership costs as little as $1 a month and includes access to exclusive e-books and online training courses.",
+              "level": 4,
+              "children": [
+                {
+                  "md": "22",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "Patreon Membership site",
+                  "level": 5,
+                  "children": []
+                },
+                {
+                  "md": "23",
+                  "tag": "a",
+                  "role": "link",
+                  "name": "e-books and online training courses",
+                  "level": 5,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

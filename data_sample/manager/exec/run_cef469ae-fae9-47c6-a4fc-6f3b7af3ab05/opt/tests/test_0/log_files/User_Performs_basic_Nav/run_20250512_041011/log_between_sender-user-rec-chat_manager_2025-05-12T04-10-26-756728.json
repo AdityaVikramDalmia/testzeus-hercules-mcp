@@ -1,0 +1,28 @@
+{
+    "user_proxy_agent": [
+        {
+            "content": "Execute the USER TESTING TASK INSTRUCTIONS: \"Feature: Basic Nav perfomance functionality ;next; Scenario:User Performs basic NavUser Performs basic Nav ;next;  Given a user is on the main page at the URL ;next;  And the user clicks on the \"About\" button in the top nav ;next;  Then the page should navigate to \"https://testpages.eviltester.com/styled/page?app=testpages&t=About\" ;next;  And the first heading of the article should be \"About TestPages\"\" \nCURRENT STATE:",
+            "role": "assistant",
+            "name": "user"
+        },
+        {
+            "content": {
+                "plan": "1. Navigate the browser to the main page URL: https://testpages.eviltester.com/styled/index.html. 2. Locate and click the 'About' button in the top navigation bar. 3. Verify that the browser navigates to the URL: https://testpages.eviltester.com/styled/page?app=testpages&t=About. 4. Verify that the first heading of the article on the page is exactly 'About TestPages'.",
+                "next_step": "Navigate the browser to the main page URL 'https://testpages.eviltester.com/styled/index.html'. After navigation completes, verify the page has loaded by checking the presence of the main navigation bar or a known element on the main page. If the page does not load within 10 seconds, report failure and terminate.",
+                "terminate": "no",
+                "final_response": "",
+                "is_assert": false,
+                "assert_summary": "",
+                "is_passed": false,
+                "target_helper": "browser"
+            },
+            "role": "user",
+            "name": "planner_agent"
+        },
+        {
+            "content": "TASK FOR HELPER: Navigate the browser to the main page URL 'https://testpages.eviltester.com/styled/index.html'. After navigation completes, verify the page has loaded by checking the presence of the main navigation bar or a known element on the main page. If the page does not load within 10 seconds, report failure and terminate. Current Page: about:blank, Title:  ##target_helper: browser##",
+            "role": "assistant",
+            "name": "user"
+        }
+    ]
+}

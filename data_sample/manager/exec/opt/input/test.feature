@@ -1,0 +1,1 @@
+# Empty test file created during mock mode

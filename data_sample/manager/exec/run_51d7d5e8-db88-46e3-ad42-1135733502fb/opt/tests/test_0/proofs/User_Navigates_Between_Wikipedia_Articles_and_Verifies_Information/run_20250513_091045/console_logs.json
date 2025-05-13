@@ -1,0 +1,6 @@
+{"type": "console", "level": "log", "timestamp": 1747107649.441615, "text": "Adding a mutation observer for DOM changes", "location": {"url": "", "lineNumber": 0, "columnNumber": 8}}
+{"type": "console", "level": "log", "timestamp": 1747107657.541386, "text": "Adding a mutation observer for DOM changes", "location": {"url": "", "lineNumber": 0, "columnNumber": 8}}
+{"type": "console", "level": "warning", "timestamp": 1747107657.629812, "text": "This page is using the deprecated ResourceLoader module \"mediawiki.Uri\".\n[1.43] Please use browser native URL.", "location": {"url": "https://en.wikipedia.org/w/load.php?lang=en&modules=startup&only=scripts&raw=1&skin=vector-2022", "lineNumber": 11, "columnNumber": 76}}
+{"type": "console", "level": "warning", "timestamp": 1747107680.466754, "text": "Expected a string, but received: JSHandle@node", "location": {"url": "", "lineNumber": 76, "columnNumber": 36}}
+{"type": "console", "level": "warning", "timestamp": 1747107685.508801, "text": "Expected a string, but received: JSHandle@node", "location": {"url": "", "lineNumber": 76, "columnNumber": 36}}
+{"type": "console", "level": "log", "timestamp": 1747107689.13854, "text": "perform_javascript_click: Element with selector [md='38'] not found", "location": {"url": "", "lineNumber": 45, "columnNumber": 24}}
