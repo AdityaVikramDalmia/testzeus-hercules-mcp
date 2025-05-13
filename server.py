@@ -138,20 +138,87 @@ mcp = FastApiMCP(app,
                  name="Hercules",
 
                  description="""
-                 Description
-TestFlow Orchestrator is an MCP server that bridges test discovery and execution through a streamlined API workflow. It enables users to run existing automated tests without managing complex infrastructure details.
-Workflow Overview
+# TestZeus Hercules MCP Server
 
-Discovery: When users request a test run, system calls getAllContent to identify the requested test from the library of feature scripts and test data files
-Execution: System then invokes runTestsFromTemplate to execute identified tests with appropriate templates and configurations
-Results: Each execution receives a unique ID with dedicated storage for artifacts and results
+## Overview
+TestZeus Hercules is a powerful MCP server that orchestrates automated test execution through a streamlined API. It specializes in template-based test management, real-time execution monitoring, and comprehensive result tracking.
 
-The system handles all test resource management, configuration, and execution in a unified interface, requiring minimal user input to run complex test scenarios.
+## Core Operations
+
+### 1. Test Definition Library Access (`getAllTestDefinitionData`)
+- **Endpoint**: `GET /test-definition-data`
+- **Purpose**: Retrieve complete content of all feature files and test data templates
+- **Features**:
+  - Scans feature files from the `data/manager/lib/features/` directory
+  - Retrieves test data files from the `data/manager/lib/test_data/` directory
+  - Provides both relative and absolute file paths
+  - Includes full content of each file with binary detection
+  - Essential for discovering available templates before test execution
+
+### 2. Execution Management (`getExecutionList`)
+- **Endpoint**: `GET /executions`
+- **Purpose**: Retrieve all test executions with optional filtering
+- **Features**:
+  - Filter by status: running, pending, completed, failed
+  - Automatic status validation and correction
+  - Progress tracking with completion statistics
+  - Source differentiation (memory vs database records)
+
+### 3. Detailed Execution Insights (`getExecutionDetails`)
+- **Endpoint**: `GET /executions/{execution_id}`
+- **Purpose**: Get comprehensive execution information
+- **Provides**:
+  - Test execution status and timeline
+  - XML result analysis with pass/fail determination
+  - Database records of all associated tests
+  - Step-by-step execution details
+  - Test summary and final responses
+
+### 4. Template-Based Test Execution (`runningATemplate`)
+- **Endpoint**: `POST /tests/run-from-template-new`
+- **Purpose**: Execute tests using predefined templates or custom scripts
+- **Capabilities**:
+  - Support for feature templates and custom Gherkin scripts
+  - Data-driven testing with template substitution
+  - Multiple browser support (Chrome, Firefox, Safari)
+  - Environment-specific execution (dev, staging, production)
+  - Mock mode for testing without actual execution
+  - Parallel test execution with unique directory management
+  - Contains a field `wsUrl` that returns a websocket url to monitor the progress of the execution, WebSocket URL to receive real-time logs for this execution. Useful for observing execution progress in a separate terminal or IDE. THIS SHOULD BE UTILISED TO MONITOR IN BACKGROUND. COMMAND CAN WE BUSED IWTH SOCAT like  websocat ws://127.0.0.1:8003/ws/logs/13db9744-abe6-4947-80cc-8612a91a0e21
+
+### 5. Bulk File Upload (`bulkUploadTestDefinitionFiles`)
+- **Endpoint**: `POST /bulk-upload-files`
+- **Purpose**: Upload multiple test files in a single operation
+- **Capabilities**:
+  - Upload multiple feature files and test data files in one request
+  - Save files to appropriate directories based on type (`feature` or `test_data`)
+  - Path sanitization for security
+  - Automatic parent directory creation
+  - Detailed success/failure reporting for each file
+  - Returns operation statistics with unique operation ID
+  - Ideal for programmatic test definition management and CI/CD integration
+
+## Key Features
+- **Real-time Monitoring**: WebSocket-based live execution tracking
+- **Automatic Archiving**: Results preserved in permanent storage
+- **XML Processing**: Detailed test result parsing and analysis
+- **Template System**: Reusable test scripts and data templates
+- **Execution Lifecycle**: Complete tracking from creation to completion
+- **Error Recovery**: Automatic status correction and cleanup
+- **Bulk Operations**: Efficient management of multiple test files
+
+## Workflow
+1. Verify server status with health check
+2. Browse or upload test templates and data files
+3. Execute tests using template-based configuration
+4. Monitor execution progress via status endpoints
+5. Retrieve detailed results and analysis
+6. Access archived results for historical analysis
                  """,
                  # describe_all_responses=True,
                  # describe_full_response_schema=True,
                  # Explicitly include the run-from-template endpoint to ensure it's exposed
-                 include_operations=["getTestChecking","getExecutionList","getExecutionDetails","runningATemplate"],
+                 include_operations=["getExecutionList","getExecutionDetails","runningATemplate","getAllTestDefinitionData", "bulkUploadTestDefinitionFiles"],
                  )
 mcp.mount()
 

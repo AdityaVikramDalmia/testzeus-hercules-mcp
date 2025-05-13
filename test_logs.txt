@@ -1,0 +1,2 @@
+websocat: WebSocketError: Connection reset by peer (os error 54)
+websocat: error running

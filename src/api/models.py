@@ -38,6 +38,19 @@ class TestInfosRequest(BaseModel):
     test_infos: List[TestInfo]
     mock: bool = False
 
+class HSingleFile(BaseModel):
+    """Request containing multiple test information objects."""
+    path: str
+    type: str
+    content: str
+
+
+class HFileRequest(BaseModel):
+    """Request containing multiple test information objects."""
+    files: List[HSingleFile]
+
+
+
 class TestRequest(BaseModel):
     """Request for a single test execution."""
     test_id: str

@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 
 # Change import from server to app
 from app import app
-from src.api.models import TestRequest, TestInfosRequest, TestResponse, TestResult, HFileRequest
+from src.api.models import TestRequest, TestInfosRequest, TestResponse, TestResult, BulkFileUploadRequest, FileUploadSpec
 from src.api.utils import APIUtils
 from src.utils.filesystem import FileSystemManager
 from src.utils.logger import logger
@@ -2384,20 +2384,20 @@ async def get_all_test_definition_data():
         "operation_id": operation_id
     }
 
-@app.post("/bulk-upload-files1", operation_id="bulkUploadTestDefinitionFiles")
-async def bulk_upload_files(request: HFileRequest, background_tasks: BackgroundTasks):
+@app.post("/bulk-upload-files", operation_id="bulkUploadFiles")
+async def bulk_upload_files(request: BulkFileUploadRequest):
     """
     Upload multiple files in bulk to the test definition directories.
     
     This endpoint accepts an array of file objects with the following structure:
     ```json
-     [
-            {
-            "path": "relative path within the appropriate directory",
-            "type": "feature|test_data",
-            "content": "The full text content of the file"
-            }
-        ]
+    [
+      {
+        "path": "relative path within the appropriate directory",
+        "type": "feature|test_data",
+        "content": "The full text content of the file"
+      }
+    ]
     ```
     
     Features are saved to `data/manager/lib/features/` directory.
@@ -2405,8 +2405,7 @@ async def bulk_upload_files(request: HFileRequest, background_tasks: BackgroundT
     
     Returns a list of results for each file upload operation.
     """
-    files = request.files
-    logger.info(f"Bulk uploading {len(files)} files")
+    logger.info(f"Bulk uploading {len(request.files)} files")
     
     # Get configured directories using the Config utility
     dirs = Config.get_data_directories()
@@ -2418,12 +2417,11 @@ async def bulk_upload_files(request: HFileRequest, background_tasks: BackgroundT
     
     results = []
     
-    for file_data in files:
+    for file_data in request.files:
         try:
-            file_path = file_data.path
-            file_type = file_data.type
-            file_content = file_data.content
-
+            file_path = file_data.get("path")
+            file_type = file_data.get("type")
+            file_content = file_data.get("content")
             
             # Validate input parameters
             if not file_path:
@@ -2485,16 +2483,16 @@ async def bulk_upload_files(request: HFileRequest, background_tasks: BackgroundT
             logger.info(f"Successfully wrote file to {target_path}")
             
         except Exception as e:
-            # logger.error(f"Error writing file {file_data.get('path', 'unknown')}: {str(e)}")
+            logger.error(f"Error writing file {file_data.get('path', 'unknown')}: {str(e)}")
             results.append({
-                "path":  "unknown",
+                "path": file_data.get("path", "unknown"),
                 "status": "error",
                 "message": f"Error: {str(e)}"
             })
     
     return {
         "operation_id": str(uuid.uuid4()),
-        "total_files": len(files),
+        "total_files": len(request.files),
         "successful": sum(1 for r in results if r.get("status") == "success"),
         "failed": sum(1 for r in results if r.get("status") == "error"),
         "results": results

@@ -29,20 +29,43 @@ paths:
                   version:
                     type: string
 
-  /executions:
-    get:
-      summary: Get all executions
-      description: Returns a list of all test executions with optional status filtering
-      operationId: getAllExecutions
-      parameters:
-        - name: status
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [running, pending, completed, failed]
-          description: Filter executions by status
-      responses:
+/executions:
+  get:
+    summary: Get all executions
+    description: |
+      Returns a list of all test executions with optional status filtering.
+      
+      - Filter by status: running, pending, completed, failed
+      - Shows execution progress (completed_tests/total_tests)
+      - Includes source information (memory vs database)
+      - Automatically corrects stale execution statuses
+      
+      Use this to monitor all active executions or analyze historical runs.
+      
+      Example response:
+      ```json
+      [
+        {
+          "execution_id": "uuid-1234",
+          "status": "running",
+          "start_time": "2024-01-15T10:30:00Z",
+          "total_tests": 5,
+          "completed_tests": 2,
+          "failed_tests": 0,
+          "source": "memory"
+        }
+      ]
+      ```
+    operationId: getExecutionList
+    parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [running, pending, completed, failed]
+        description: Filter executions by status
+    responses:
         '200':
           description: List of executions
           content:
@@ -57,6 +80,7 @@ paths:
                     status:
                       type: string
                       enum: [pending, running, completed, failed]
+                      description: Either Dont pass a Body but cannot pass empty string
                     start_time:
                       type: string
                       format: date-time
@@ -125,19 +149,43 @@ paths:
 
 
 
-  /executions/{execution_id}/details:
-    get:
-      summary: Get detailed execution information
-      description: Returns comprehensive details about a test execution including database records
-      operationId: getExecutionDetails
-      parameters:
-        - name: execution_id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique ID of the execution
-      responses:
+/executions/{execution_id}/details:
+  get:
+    summary: Get detailed execution information
+    description: |
+      Returns comprehensive details about a test execution including status, progress, and results.
+      
+      Provides:
+      - Execution status (pending/running/completed/failed)
+      - Test progress (completed_tests/total_tests)
+      - XML result analysis with pass/fail status
+      - Database records of all test runs with steps and events
+      - Test artifacts (screenshots, logs, proofs)
+      
+      Use this to monitor execution progress and analyze results after completion.
+      
+      Example response structure:
+      ```json
+      {
+        "execution_id": "12345-uuid",
+        "status": "completed",
+        "test_passed": true,
+        "test_summary": "All tests passed successfully",
+        "xml_results": [...],
+        "database_records": [...],
+        "completed_tests": 3,
+        "total_tests": 3
+      }
+      ```
+    operationId: getExecutionDetails
+    parameters:
+      - name: execution_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Unique ID of the execution
+    responses:
         '200':
           description: Execution details retrieved successfully
           content:
@@ -547,56 +595,211 @@ paths:
                   detail:
                     type: string
 
+  /test-definition-data:
+    get:
+    summary: Get all test definition data
+    description: |
+      Returns complete content of all feature files and test data files from the library.
+      
+      - Scans `data/manager/lib/features/` for Gherkin feature files
+      - Scans `data/manager/lib/test_data/` for test data files
+      - Provides file paths (relative and absolute) and full content
+      
+      Use this to discover available templates before executing tests with `runningATemplate`.
+      
+      Example response structure:
+      ```json
+      {
+        "feature_data_list": [
+          {
+            "path": "basic/login.feature",
+            "content": "Feature: Login Test\n...",
+            "is_binary": false
+          }
+        ],
+        "test_data_list": [
+          {
+            "path": "credentials.txt", 
+            "content": "username=admin\npassword=secret",
+            "is_binary": false
+          }
+        ]
+      }
+      ```
+    operationId: getAllTestDefinitionData
+    responses:
+        '200':
+          description: Test definition data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  feature_data_list:
+                    type: array
+                    description: List of feature files with their content
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                          description: Relative path from the features root directory
+                        full_file_path:
+                          type: string
+                          description: Full file system path to the file
+                        content:
+                          type: string
+                          description: Complete content of the feature file
+                        is_binary:
+                          type: boolean
+                          description: Flag indicating if the file is binary
+                  test_data_list:
+                    type: array
+                    description: List of test data files with their content
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                          description: Relative path from the test_data root directory
+                        full_file_path:
+                          type: string
+                          description: Full file system path to the file
+                        content:
+                          type: string
+                          description: Complete content of the test data file
+                        is_binary:
+                          type: boolean
+                          description: Flag indicating if the file is binary
+                  operation_id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier for this operation
+              example:
+                feature_data_list:
+                  - path: "basic/test.feature"
+                    full_file_path: "/path/to/data/manager/lib/features/basic/test.feature"
+                    content: |
+                      Feature: Basic Navigation Functionality
+                        Scenario: User Performs Basic Navigation
+                          Given a user is on the test pages
+                          When the user clicks on a button
+                          Then the page should navigate correctly
+                    is_binary: false
+                test_data_list:
+                  - path: "test_data.txt"
+                    full_file_path: "/path/to/data/manager/lib/test_data/test_data.txt"
+                    content: "url=https://example.com\nbutton_text=Submit\nexpected_url=https://example.com/success"
+                    is_binary: false
+                operation_id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    description: Error message describing what went wrong
 
   /tests/run-from-template-new:
     post:
-      summary: Run tests from template
-      description: |
-        Execute one or more tests using templates or scripts from the library.
+    summary: Run tests from template
+    description: |
+      Execute one or more tests using templates or scripts from the library. This endpoint provides comprehensive test execution capabilities with real-time monitoring.
+      
+      ## Core Capabilities
+      - Execute tests using feature templates from the library (Gherkin format)
+      - Provide custom feature scripts directly for one-off tests
+      - Use test data templates with variable substitution
+      - Configure browser settings (headless mode, browser type)
+      - Set execution timeouts and environment-specific configurations
+      - Run in mock mode for testing without actual execution
+      - Track execution progress with unique execution IDs
+      
+      ## Template Path Configuration
+      All template paths are relative to system library directories:
+      - **Feature templates**: `data/manager/lib/features/` (e.g., "basic/test.feature")
+      - **Test data templates**: `data/manager/lib/test_data/` (e.g., "credentials.txt")
+      
+      ## Request Structure
+      **Required Fields:**
+      - `test_infos` (array): Array of test configurations
+        - `order` (integer): Execution sequence (0-based, tests run sequentially)
+        - `feature` (object): Either `templatePath` OR `featureScript` (mutually exclusive)
+          - `templatePath`: Path to library template relative to features directory
+          - `featureScript`: Custom Gherkin script for one-off tests
+      
+      **Optional Fields per test:**
+      - `testData` (array): Test data templates for variable substitution
+      - `headless` (boolean, default: false): Browser visibility (true for CI/CD)
+      - `timeout` (integer, default: 300): Max execution time in seconds (1-3600)
+      - `browser` (string, default: "chromium"): Browser engine ("chromium", "firefox", "webkit")
+      
+      **Global Options:**
+      - `mock` (boolean, default: false): Simulate execution without running tests
+      - `environment` (string, default: "test"): Target environment ("production", "staging", "development", "test")
+      
+      ## Response Structure
+      Returns immediately with:
+      - `execution_id`: Unique UUID for tracking progress
+      - `status`: "pending" (scheduled), "running" (executing), or "mocked" (simulated)
+      - `start_time`: ISO timestamp of execution creation
+      - `message`: Human-readable status message
+      - `test_count`: Number of tests in execution
+      - `tests`: Array of test details with order and test_id
+      
+      ## Example Usage
+      ```json
+      {
+        "test_infos": [
+          {
+            "order": 0,
+            "feature": {
+              "templatePath": "login/oauth.feature"
+            },
+            "testData": [
+              {"templatePath": "prod_credentials.txt"}
+            ],
+            "headless": true,
+            "timeout": 600,
+            "browser": "chromium"
+          },
+          {
+            "order": 1,
+            "feature": {
+              "featureScript": "Feature: Custom Test\n  Scenario: Verify endpoint\n    Given I have API access\n    When I call the endpoint\n    Then I get success response"
+            },
+            "browser": "firefox"
+          }
+        ],
+        "mock": false,
+        "environment": "staging"
+      }
+      ```
+      
+      ## Test Data Variable Substitution
+      Test data files contain key-value pairs (e.g., `username=admin&password=secret123`) that get substituted into feature scripts using `${variable}` syntax in Gherkin steps.
+      
+      ## Execution Flow
+      1. Submit test configuration to get unique execution_id
+      2. Tests execute sequentially by order value
+      3. Monitor progress using execution_id with other endpoints
+      4. Retrieve results and artifacts when complete
+      
+      ## Error Responses
+      - **400**: Invalid request (missing required fields, invalid configuration)
+      - **500**: Server error (infrastructure issues, database failures)
+      
+      ## Integration Notes
+      - Use `getAllContent` operationId to discover available templates
+      - Execution runs asynchronously - use execution_id for status checks
+      - Mock mode useful for testing configurations without resource usage
+      - Results include detailed XML analysis and test artifacts
+    operationId: runningATemplate
         
-        This endpoint allows running tests with the following capabilities:
-        - Execute tests using feature templates from the library
-        - Provide custom feature scripts directly
-        - Use test data from template files
-        - Configure browser settings (headless mode, browser type)
-        - Set execution timeouts
-        - Run in mock mode for testing
-        
-        The API creates a unique execution ID for tracking test progress and returns
-        immediately while tests run in the background.
-        
-        ## Template Path Configuration
-        
-        All template paths are relative to the system's library directories:
-        - Feature templates: Relative to `data/manager/lib/features/`
-        - Test data templates: Relative to `data/manager/lib/test_data/`
-        
-        ## Example Usage
-        ```json
-        {
-          "test_infos": [
-            {
-              "order": 0,
-              "feature": {
-                "templatePath": "basic/test.feature"
-              },
-              "testData": [
-                {
-                  "templatePath": "test_data.txt"
-                }
-              ],
-              "headless": false,
-              "timeout": 300,
-              "browser": "chromium"
-            }
-          ],
-          "mock": false,
-          "environment": "test"
-        }
-        ```
-
-      operationId: runTestsFromTemplate
-      requestBody:
+    requestBody:
         required: true
         content:
           application/json:
@@ -625,7 +828,7 @@ paths:
                         type: object
                         description: |
                           Feature definition - either a template path OR custom script.
-                          You must provide exactly one of templatePath or featureScript.
+                          You must provide exactly one of templatePath or featureScript. that is available from operationId getAllContent
                         properties:
                           templatePath:
                             type: string
@@ -710,7 +913,7 @@ paths:
                     Target environment for test execution.
                     May affect environment-specific configurations.
                   example: "test"
-      responses:
+    responses:
         '200':
           description: Tests scheduled successfully
           content:
@@ -760,6 +963,10 @@ paths:
                           type: string
                           description: Unique identifier for this specific test
                           example: "test_0"
+                  wsUrl:
+                    type: string
+                    description: WebSocket URL to receive real-time logs for this execution. Useful for observing execution progress in a separate terminal or IDE. THIS SHOULD BE UTILISED TO MONITOR IN BACKGROUND. COMMAND CAN WE BUSED IWTH SOCAT like  websocat ws://127.0.0.1:8003/ws/logs/13db9744-abe6-4947-80cc-8612a91a0e21
+                    example: "ws://localhost:8080/ws/123e4567-e89b-12d3-a456-426614174000"
         '400':
           description: Invalid request
           content:
@@ -1336,6 +1543,98 @@ components:
         - status
         - start_time
       description: Result of a test execution
+
+  /bulk-upload-files:
+    post:
+      summary: Upload multiple files in bulk
+      description: |
+        Upload multiple files in bulk to the test definition directories.
+        
+        This endpoint accepts an array of file objects with the following structure:
+        ```json
+          {
+           "files": [
+                  {
+                  "path": "relative path within the appropriate directory",
+                  "type": "feature|test_data",
+                  "content": "The full text content of the file"
+                  }
+              ]
+           }
+        ```
+        
+        Features are saved to `data/manager/lib/features/` directory.
+        Test data is saved to `data/manager/lib/test_data/` directory.
+        
+        Returns a list of results for each file upload operation.
+      operationId: bulkUploadTestDefinitionFiles
+      tags:
+        - Library
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                files:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - path
+                    - type
+                    - content
+                  properties:
+                    path:
+                      type: string
+                      description: Relative path within the appropriate directory
+                      example: "basic/login.feature"
+                    type:
+                      type: string
+                      enum: ["feature", "test_data"]
+                      description: Type of file determining where it will be stored
+                      example: "feature"
+                    content:
+                      type: string
+                      description: The full text content of the file
+                      example: "Feature: Login Test\n  Scenario: Test login\n    Given I am on the login page\n    When I enter credentials\n    Then I should be logged in"
+      responses:
+        '200':
+          description: Files uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  operation_id:
+                    type: string
+                    format: uuid
+                    description: Unique ID for this bulk upload operation
+                  total_files:
+                    type: integer
+                    description: Total number of files in the request
+                  successful:
+                    type: integer
+                    description: Number of files successfully uploaded
+                  failed:
+                    type: integer
+                    description: Number of files that failed to upload
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                          description: Path of the file from the request
+                        status:
+                          type: string
+                          enum: ["success", "error"]
+                          description: Status of this individual file upload
+                        message:
+                          type: string
+                          description: Additional information or error message
 
 tags:
   - name: Test Management
