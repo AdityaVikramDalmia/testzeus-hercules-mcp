@@ -257,10 +257,20 @@ In addition to the REST API endpoints, the server provides WebSocket endpoints f
 ## Setup and Running
 
 1. **Prerequisites**:
-   * Python 3.8+
+   * Python 3.10 (recommended)
 
-2. **Install Dependencies**:
+2. **Create and Activate Virtual Environment**:
    ```bash
+   # Create a virtual environment with Python 3.10
+   python3.10 -m venv venv
+   
+   # Activate the virtual environment
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install Dependencies**:
+   ```bash
+   # After activating the virtual environment
    pip install -r requirements.txt
    ```
 
