@@ -55,6 +55,7 @@ data/
 # Log files
 logs/
 *.log
+opt/
 
 # Project specific
 .cache/
