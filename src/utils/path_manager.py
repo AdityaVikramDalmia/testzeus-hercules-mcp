@@ -148,11 +148,11 @@ class PathManager:
     
     def get_library_root(self) -> Path:
         """Get the library root path."""
-        return self.data_dir / "manager" / "long_term_lib" / "features"
+        return self.data_dir / "manager" / "lib" / "features"
     
     def get_test_data_library_root(self) -> Path:
         """Get the test data library root path."""
-        return self.data_dir / "manager" / "long_term_lib" / "test_data"
+        return self.data_dir / "manager" / "lib" / "test_data"
     
     def get_perm_storage_root(self) -> Path:
         """Get the permanent storage root path."""
